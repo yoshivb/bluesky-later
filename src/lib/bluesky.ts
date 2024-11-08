@@ -1,4 +1,4 @@
-import { BskyAgent } from "@atproto/api";
+import { BskyAgent, RichText } from "@atproto/api";
 import { db } from "./db";
 
 interface ImageInfo {
@@ -162,8 +162,14 @@ export async function checkScheduledPosts() {
 
     for (const post of pendingPosts) {
       try {
+        // Create a RichText instance
+        const richText = new RichText({ text: post.content });
+        // Process the text to detect mentions, links, etc.
+        await richText.detectFacets(agent);
+
         const postData: {
           text: string;
+          facets?: RichText["facets"];
           createdAt: string;
           embed?: {
             $type: string;
@@ -186,7 +192,8 @@ export async function checkScheduledPosts() {
             };
           };
         } = {
-          text: post.content,
+          text: richText.text,
+          facets: richText.facets,
           createdAt: new Date().toISOString(),
         };
 
