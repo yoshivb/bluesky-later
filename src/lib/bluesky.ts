@@ -1,6 +1,33 @@
 import { BskyAgent } from "@atproto/api";
 import { db } from "./db";
 
+interface ImageInfo {
+  url?: string;
+  type: string;
+  size: number;
+  height: number;
+  width: number;
+  size_pretty: string;
+}
+
+interface WebsiteData {
+  lang: string;
+  author: string;
+  title: string;
+  publisher: string;
+  image?: ImageInfo;
+  url: string;
+  description: string;
+  date: string;
+  logo: ImageInfo;
+}
+
+interface WebsiteResponse {
+  status: "success";
+  data?: WebsiteData;
+  statusCode: number;
+}
+
 export const agent = new BskyAgent({
   service: "https://bsky.social",
 });
@@ -22,26 +49,67 @@ export async function login(identifier: string, password: string) {
 
 async function fetchUrlMetadata(url: string) {
   try {
-    const response = await fetch(url);
-    const html = await response.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
+    const microlinkResponse = await fetch(
+      `https://api.microlink.io?meta=true&url=${encodeURIComponent(url)}`,
+      {
+        headers: import.meta.env.MICROLINK_API_KEY
+          ? {
+              "x-api-key": import.meta.env.MICROLINK_API_KEY,
+            }
+          : undefined,
+      }
+    );
+    const microlinkResponseJson =
+      (await microlinkResponse.json()) as WebsiteResponse;
 
-    const title =
-      doc.querySelector("title")?.textContent ||
-      doc.querySelector('meta[property="og:title"]')?.getAttribute("content") ||
-      url;
+    if (microlinkResponseJson.status !== "success") {
+      throw new Error("Failed to fetch metadata");
+    }
 
-    const description =
-      doc.querySelector('meta[name="description"]')?.getAttribute("content") ||
-      doc
-        .querySelector('meta[property="og:description"]')
-        ?.getAttribute("content") ||
-      "";
+    if (!microlinkResponseJson.data) {
+      throw new Error("Failed to fetch metadata");
+    }
 
-    return { title, description };
+    const {
+      data: { title, description, image },
+    } = microlinkResponseJson;
+
+    let websiteImage: BlobRefType | undefined = undefined;
+    try {
+      if (image && image.url) {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
+          image.url
+        )}`;
+        const imageResponse = await fetch(proxyUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+        }
+        const imageBlob = await imageResponse.blob();
+        const extension = image.type?.split("/")[1] || "jpg";
+        const file = new File([imageBlob], `preview.${extension}`, {
+          type: image.type,
+        });
+        const uploadResult = await uploadImage(file);
+        websiteImage = uploadResult.blobRef;
+      }
+    } catch (error) {
+      console.error("Failed to fetch image:", error);
+    }
+
+    return {
+      uri: url,
+      title: title || url,
+      description: description || "",
+      thumb: websiteImage,
+    };
   } catch (error) {
     console.error("Error fetching metadata:", error);
-    return { title: url, description: "" };
+    return {
+      uri: url,
+      title: url,
+      description: "",
+      thumb: undefined,
+    };
   }
 }
 
@@ -112,8 +180,9 @@ export async function checkScheduledPosts() {
             }>;
             external?: {
               uri: string;
-              title?: string;
-              description?: string;
+              title: string;
+              description: string;
+              thumb?: BlobRefType;
             };
           };
         } = {
@@ -122,14 +191,10 @@ export async function checkScheduledPosts() {
         };
 
         if (post.url) {
-          const { title, description } = await fetchUrlMetadata(post.url);
+          const urlEmbed = await fetchUrlMetadata(post.url);
           postData.embed = {
             $type: "app.bsky.embed.external",
-            external: {
-              uri: post.url,
-              title, // Now we include the required title
-              description,
-            },
+            external: urlEmbed,
           };
         } else if (post.image?.blobRef) {
           postData.embed = {
