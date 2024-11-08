@@ -14,7 +14,9 @@ function App() {
   useEffect(() => {
     const checkAuth = async () => {
       const creds = await getStoredCredentials();
-      setIdentifier(creds.identifier);
+      if (creds && creds.identifier) {
+        setIdentifier(creds.identifier);
+      }
       setIsAuthenticated(!!creds);
       setIsLoading(false);
     };
