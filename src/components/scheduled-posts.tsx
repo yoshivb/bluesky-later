@@ -2,6 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
 import { format } from "date-fns";
 import { AlertCircle, CheckCircle, Clock, Image, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function ScheduledPosts() {
   const posts = useLiveQuery(() =>
@@ -28,7 +29,10 @@ export function ScheduledPosts() {
         <h2 className="text-2xl font-bold">Scheduled Posts</h2>
         <button
           onClick={clearScheduledPosts}
-          className="text-sm text-red-600 hover:text-red-700"
+          className={cn(
+            "text-sm text-red-600 hover:text-red-700",
+            posts.length === 0 && "hidden"
+          )}
         >
           Clear All
         </button>
