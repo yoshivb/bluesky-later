@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { LoginForm } from "./components/login-form";
 import { PostScheduler } from "./components/post-scheduler";
 import { ScheduledPosts } from "./components/scheduled-posts";
-import { getStoredCredentials, checkScheduledPosts } from "./lib/bluesky";
+import { getStoredCredentials, checkScheduledPosts } from "./lib/bluesky"; // Import db for clearing credentials
 import { Toaster } from "react-hot-toast";
+import { db } from "./lib/db";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,13 +43,24 @@ function App() {
     );
   }
 
+  const handleLogout = async () => {
+    await db.credentials.clear(); // Clear credentials from the database
+    setIsAuthenticated(false); // Update authenticated state
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4">
+        <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">
             BlueSky Post Scheduler
           </h1>
+          <button
+            className="text-blue-600 hover:underline"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
         </div>
       </header>
 
