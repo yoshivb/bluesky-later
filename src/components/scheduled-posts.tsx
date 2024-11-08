@@ -1,7 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
 import { format } from "date-fns";
-import { AlertCircle, CheckCircle, Clock, Image } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, Image, Trash2 } from "lucide-react";
 
 export function ScheduledPosts() {
   const posts = useLiveQuery(() =>
@@ -9,7 +9,15 @@ export function ScheduledPosts() {
   );
 
   const clearScheduledPosts = async () => {
-    await db.posts.clear(); // Clear all posts from the database
+    if (window.confirm("Are you sure you want to clear all scheduled posts?")) {
+      await db.posts.clear();
+    }
+  };
+
+  const deletePost = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this post?")) {
+      await db.posts.delete(id);
+    }
   };
 
   if (!posts) return null;
@@ -18,7 +26,10 @@ export function ScheduledPosts() {
     <div className="mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Scheduled Posts</h2>
-        <button onClick={clearScheduledPosts} className="text-sm">
+        <button
+          onClick={clearScheduledPosts}
+          className="text-sm text-red-600 hover:text-red-700"
+        >
           Clear All
         </button>
       </div>
@@ -56,7 +67,7 @@ export function ScheduledPosts() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center gap-3">
                 {post.status === "pending" && (
                   <Clock className="h-5 w-5 text-yellow-500" />
                 )}
@@ -73,6 +84,12 @@ export function ScheduledPosts() {
                     )}
                   </div>
                 )}
+                <button
+                  onClick={() => post.id && deletePost(post.id)}
+                  className="text-gray-400 hover:text-red-600 transition-colors"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
               </div>
             </div>
           </div>
