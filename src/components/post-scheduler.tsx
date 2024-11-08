@@ -2,14 +2,19 @@ import React, { useState } from "react";
 import { Calendar, Clock, Send } from "lucide-react";
 import { db } from "../lib/db";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
+import { format, addHours } from "date-fns";
 import { ImageUpload } from "./image-upload";
 import { OfflineInfo } from "./offline-info";
 
 export function PostScheduler() {
+  const defaultDate = addHours(new Date(), 24);
   const [content, setContent] = useState("");
-  const [scheduledDate, setScheduledDate] = useState("");
-  const [scheduledTime, setScheduledTime] = useState("");
+  const [scheduledDate, setScheduledDate] = useState(
+    format(defaultDate, "yyyy-MM-dd")
+  );
+  const [scheduledTime, setScheduledTime] = useState(
+    format(defaultDate, "HH:mm")
+  );
   const [image, setImage] = useState<
     { url: string; type: string; alt: string } | undefined
   >();
