@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { LoginForm } from "./components/login-form";
 import { PostScheduler } from "./components/post-scheduler";
 import { ScheduledPosts } from "./components/scheduled-posts";
-import { getStoredCredentials, checkScheduledPosts } from "./lib/bluesky";
+import { getStoredCredentials } from "./lib/bluesky";
 import { Toaster } from "react-hot-toast";
 import { db } from "./lib/db";
 import { Footer } from "./components/footer";
@@ -21,10 +21,19 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let worker: Worker | null = null;
+
     if (identifier) {
-      const interval = setInterval(checkScheduledPosts, 60000); // Check every minute
-      return () => clearInterval(interval);
+      worker = new Worker(new URL("./workers/scheduler.ts", import.meta.url));
+      worker.postMessage("start");
     }
+
+    return () => {
+      if (worker) {
+        worker.postMessage("stop");
+        worker.terminate();
+      }
+    };
   }, [identifier]);
 
   if (isLoading) {
