@@ -1,15 +1,11 @@
-import React from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../lib/db';
-import { format } from 'date-fns';
-import { AlertCircle, CheckCircle, Clock, Image } from 'lucide-react';
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "../lib/db";
+import { format } from "date-fns";
+import { AlertCircle, CheckCircle, Clock, Image } from "lucide-react";
 
 export function ScheduledPosts() {
   const posts = useLiveQuery(() =>
-    db.posts
-      .orderBy('scheduledFor')
-      .reverse()
-      .toArray()
+    db.posts.orderBy("scheduledFor").reverse().toArray()
   );
 
   if (!posts) return null;
@@ -38,8 +34,8 @@ export function ScheduledPosts() {
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Clock className="h-4 w-4" />
                   <span>
-                    Scheduled for{' '}
-                    {format(post.scheduledFor, 'MMM d, yyyy h:mm a')}
+                    Scheduled for{" "}
+                    {format(post.scheduledFor, "MMM d, yyyy h:mm a")}
                   </span>
                   {post.image && (
                     <>
@@ -51,13 +47,13 @@ export function ScheduledPosts() {
                 </div>
               </div>
               <div className="flex items-center">
-                {post.status === 'pending' && (
+                {post.status === "pending" && (
                   <Clock className="h-5 w-5 text-yellow-500" />
                 )}
-                {post.status === 'published' && (
+                {post.status === "published" && (
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 )}
-                {post.status === 'failed' && (
+                {post.status === "failed" && (
                   <div className="relative group">
                     <AlertCircle className="h-5 w-5 text-red-500" />
                     {post.error && (

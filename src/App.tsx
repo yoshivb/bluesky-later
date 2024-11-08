@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { LoginForm } from './components/LoginForm';
-import { PostScheduler } from './components/PostScheduler';
-import { ScheduledPosts } from './components/ScheduledPosts';
-import { getStoredCredentials, checkScheduledPosts } from './lib/bluesky';
-import { Toaster } from 'react-hot-toast';
+import { useEffect, useState } from "react";
+import { LoginForm } from "./components/LoginForm";
+import { PostScheduler } from "./components/PostScheduler";
+import { ScheduledPosts } from "./components/ScheduledPosts";
+import { getStoredCredentials, checkScheduledPosts } from "./lib/bluesky";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

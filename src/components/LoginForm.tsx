@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { AtSign, Lock } from 'lucide-react';
-import { login } from '../lib/bluesky';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { AtSign, Lock } from "lucide-react";
+import { login } from "../lib/bluesky";
+import toast from "react-hot-toast";
 
 export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -14,10 +14,11 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
 
     try {
       await login(identifier, password);
-      toast.success('Successfully logged in!');
+      toast.success("Successfully logged in!");
       onSuccess();
-    } catch (error) {
-      toast.error('Failed to login. Please check your credentials.');
+    } catch (error: unknown) {
+      console.log(error);
+      toast.error("Failed to login. Please check your credentials.");
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +67,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
             disabled={isLoading}
             className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
       </div>

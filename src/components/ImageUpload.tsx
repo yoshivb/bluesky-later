@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
-import { uploadImage } from "../lib/bluesky";
+import { BlobRefType, uploadImage } from "../lib/bluesky";
 import toast from "react-hot-toast";
 
 interface ImageUploadProps {
@@ -8,10 +8,15 @@ interface ImageUploadProps {
     url: string;
     type: string;
     alt: string;
-    blobRef: any;
+    blobRef: BlobRefType;
   }) => void;
   onImageClear: () => void;
-  selectedImage?: { url: string; alt: string };
+  selectedImage?: {
+    url: string;
+    alt: string;
+    type?: string;
+    blobRef?: BlobRefType;
+  };
 }
 
 export function ImageUpload({
@@ -41,7 +46,12 @@ export function ImageUpload({
     setIsUploading(true);
     try {
       const { url, type, blobRef } = await uploadImage(file);
-      onImageSelect({ url, type, alt: altText, blobRef });
+      onImageSelect({
+        url,
+        type,
+        alt: altText,
+        blobRef,
+      });
     } catch (error) {
       console.error(error);
       toast.error("Failed to upload image");
@@ -52,12 +62,12 @@ export function ImageUpload({
 
   const handleAltTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAltText(e.target.value);
-    if (selectedImage) {
+    if (selectedImage && selectedImage.blobRef) {
       onImageSelect({
         ...selectedImage,
         alt: e.target.value,
-        type: "",
-        blobRef: null,
+        type: selectedImage.type || "",
+        blobRef: selectedImage.blobRef,
       });
     }
   };

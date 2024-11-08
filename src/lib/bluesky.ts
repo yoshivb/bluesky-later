@@ -13,7 +13,11 @@ export async function getStoredCredentials() {
 export async function login(identifier: string, password: string) {
   await agent.login({ identifier, password });
   await db.credentials.clear();
-  await db.credentials.add({ identifier, password });
+  await db.credentials.add({
+    identifier,
+    password,
+    id: 0,
+  });
 }
 
 export async function uploadImage(file: File) {
@@ -22,7 +26,9 @@ export async function uploadImage(file: File) {
 
   await agent.login({ identifier: creds.identifier, password: creds.password });
 
-  const response = await agent.uploadBlob(await file.arrayBuffer(), {
+  const buffer = await file.arrayBuffer();
+  const uint8Array = new Uint8Array(buffer);
+  const response = await agent.uploadBlob(uint8Array, {
     encoding: file.type,
   });
 
@@ -40,6 +46,9 @@ export async function uploadImage(file: File) {
     url: URL.createObjectURL(file), // Add this for local preview
   };
 }
+
+export type UploadImageResult = Awaited<ReturnType<typeof uploadImage>>;
+export type BlobRefType = UploadImageResult["blobRef"];
 
 export async function checkScheduledPosts() {
   const now = new Date();
@@ -60,7 +69,24 @@ export async function checkScheduledPosts() {
 
     for (const post of pendingPosts) {
       try {
-        const postData: any = {
+        const postData: {
+          text: string;
+          createdAt: string;
+          embed?: {
+            $type: string;
+            images: Array<{
+              alt: string;
+              image: {
+                $type: string;
+                ref: {
+                  $link: string;
+                };
+                mimeType: string;
+                size: number;
+              };
+            }>;
+          };
+        } = {
           text: post.content,
           createdAt: new Date().toISOString(),
         };
@@ -79,15 +105,15 @@ export async function checkScheduledPosts() {
 
         await agent.post(postData);
         await db.posts.update(post.id!, { status: "published" });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Post creation error:", error);
         await db.posts.update(post.id!, {
           status: "failed",
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Failed to process scheduled posts:", error);
   }
 }
