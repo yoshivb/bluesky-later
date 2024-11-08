@@ -15,4 +15,22 @@ export default defineConfig({
   worker: {
     format: "es",
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom"],
+          "@atproto": ["@atproto/api"],
+          "date-utils": ["date-fns"],
+          "ui-components": [
+            "react-hot-toast",
+            "lucide-react",
+            "class-variance-authority",
+            "clsx",
+            "tailwind-merge",
+          ],
+        },
+      },
+    },
+  },
 });
