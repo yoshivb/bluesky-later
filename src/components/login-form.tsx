@@ -31,6 +31,10 @@ export function LoginForm({
 
   return (
     <div className="min-h-screen flex flex-col space-y-8 items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="space-y-2 text-center text-muted-foreground">
+        <h1 className="text-4xl font-bold text-black">Bluesky Later</h1>
+        <p>A simple web app to schedule posts on Bluesky</p>
+      </div>
       <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
         <h2 className="text-2xl font-bold text-center mb-8 text-gray-800">
           Login to Bluesky
@@ -87,11 +91,20 @@ export function LoginForm({
           </button>
         </form>
       </div>
-      <BlueSkyFlutter
-        href="https://bsky.app/profile/nico.fyi"
-        text="Made by @nico.fyi"
-        className="text-blue-600"
-      />
+      <div className="flex flex-col space-y-2 items-center">
+        <BlueSkyFlutter
+          href="https://bsky.app/profile/nico.fyi"
+          text="Made by @nico.fyi"
+          className="text-blue-600"
+        />
+        <a
+          href="https://github.com/nicnocquee/bluesky-scheduler"
+          target="_blank"
+          className="underline text-muted-foreground"
+        >
+          Source code
+        </a>
+      </div>
     </div>
   );
 }

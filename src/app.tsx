@@ -71,7 +71,7 @@ function App() {
         </div>
       </header>
 
-      <main className=":px-6 lg:px-8">
+      <main className="px-6 lg:px-8 mb-8">
         <div className="max-w-7xl  mx-auto px-4 py-6 sm:px-0 sm:grid sm:grid-cols-2 gap-2">
           <div className="w-full">
             <PostScheduler />
