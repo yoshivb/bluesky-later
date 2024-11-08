@@ -7,6 +7,7 @@ export interface Post {
   status: "pending" | "published" | "failed";
   error?: string;
   createdAt: Date;
+  url?: string; // Add this
   image?: {
     url: string;
     type: string;

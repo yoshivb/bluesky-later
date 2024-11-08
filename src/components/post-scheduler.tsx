@@ -22,6 +22,8 @@ export function PostScheduler() {
     }
 
     const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`);
+    const urls = extractUrls(content);
+    const firstUrl = urls[0]; // We'll use the first URL found
 
     if (scheduledFor < new Date()) {
       toast.error("Cannot schedule posts in the past");
@@ -34,7 +36,8 @@ export function PostScheduler() {
         scheduledFor,
         status: "pending",
         createdAt: new Date(),
-        image: image,
+        image,
+        url: firstUrl, // Add this
       });
 
       toast.success("Post scheduled successfully!");
@@ -122,4 +125,10 @@ export function PostScheduler() {
       </form>
     </div>
   );
+}
+
+// In post-scheduler.tsx, add this function before the PostScheduler component
+function extractUrls(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.match(urlRegex) || [];
 }
