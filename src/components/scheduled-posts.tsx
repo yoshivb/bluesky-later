@@ -8,11 +8,21 @@ export function ScheduledPosts() {
     db.posts.orderBy("scheduledFor").reverse().toArray()
   );
 
+  const clearScheduledPosts = async () => {
+    await db.posts.clear(); // Clear all posts from the database
+  };
+
   if (!posts) return null;
 
   return (
     <div className="mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">Scheduled Posts</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">Scheduled Posts</h2>
+        <button onClick={clearScheduledPosts} className="text-sm">
+          Clear All
+        </button>
+      </div>
+
       <div className="space-y-4">
         {posts.map((post) => (
           <div
