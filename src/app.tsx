@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { LoginForm } from "./components/login-form";
 import { PostScheduler } from "./components/post-scheduler";
 import { ScheduledPosts } from "./components/scheduled-posts";
-import { getStoredCredentials, checkScheduledPosts } from "./lib/bluesky"; // Import db for clearing credentials
+import { getStoredCredentials, checkScheduledPosts } from "./lib/bluesky";
 import { Toaster } from "react-hot-toast";
 import { db } from "./lib/db";
 
@@ -64,10 +64,14 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <PostScheduler />
-          <ScheduledPosts />
+      <main className=":px-6 lg:px-8">
+        <div className="max-w-7xl  mx-auto px-4 py-6 sm:px-0 sm:grid sm:grid-cols-2 gap-2">
+          <div className="w-full">
+            <PostScheduler />
+          </div>
+          <div className="w-full">
+            <ScheduledPosts />
+          </div>
         </div>
       </main>
       <Toaster position="top-right" />
