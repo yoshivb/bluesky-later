@@ -20,6 +20,31 @@ export async function login(identifier: string, password: string) {
   });
 }
 
+async function fetchUrlMetadata(url: string) {
+  try {
+    const response = await fetch(url);
+    const html = await response.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    const title =
+      doc.querySelector("title")?.textContent ||
+      doc.querySelector('meta[property="og:title"]')?.getAttribute("content") ||
+      url;
+
+    const description =
+      doc.querySelector('meta[name="description"]')?.getAttribute("content") ||
+      doc
+        .querySelector('meta[property="og:description"]')
+        ?.getAttribute("content") ||
+      "";
+
+    return { title, description };
+  } catch (error) {
+    console.error("Error fetching metadata:", error);
+    return { title: url, description: "" };
+  }
+}
+
 export async function uploadImage(file: File) {
   const creds = await getStoredCredentials();
   if (!creds) throw new Error("Not authenticated");
@@ -74,7 +99,7 @@ export async function checkScheduledPosts() {
           createdAt: string;
           embed?: {
             $type: string;
-            images: Array<{
+            images?: Array<{
               alt: string;
               image: {
                 $type: string;
@@ -85,13 +110,28 @@ export async function checkScheduledPosts() {
                 size: number;
               };
             }>;
+            external?: {
+              uri: string;
+              title?: string;
+              description?: string;
+            };
           };
         } = {
           text: post.content,
           createdAt: new Date().toISOString(),
         };
 
-        if (post.image?.blobRef) {
+        if (post.url) {
+          const { title, description } = await fetchUrlMetadata(post.url);
+          postData.embed = {
+            $type: "app.bsky.embed.external",
+            external: {
+              uri: post.url,
+              title, // Now we include the required title
+              description,
+            },
+          };
+        } else if (post.image?.blobRef) {
           postData.embed = {
             $type: "app.bsky.embed.images",
             images: [
