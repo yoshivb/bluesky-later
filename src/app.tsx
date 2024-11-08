@@ -5,6 +5,7 @@ import { ScheduledPosts } from "./components/scheduled-posts";
 import { getStoredCredentials, checkScheduledPosts } from "./lib/bluesky";
 import { Toaster } from "react-hot-toast";
 import { db } from "./lib/db";
+import { Footer } from "./components/footer";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -40,10 +41,10 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <>
+      <div className="relative">
         <LoginForm onSuccess={() => setIsAuthenticated(true)} />
         <Toaster position="top-right" />
-      </>
+      </div>
     );
   }
 
@@ -76,6 +77,7 @@ function App() {
         </div>
       </main>
       <Toaster position="top-right" />
+      <Footer />
     </div>
   );
 }

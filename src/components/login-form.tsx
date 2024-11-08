@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { AtSign, Lock } from "lucide-react";
 import { login } from "../lib/bluesky";
 import toast from "react-hot-toast";
+import { BlueSkyFlutter } from "./bluesky-flutter";
 
 export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [identifier, setIdentifier] = useState("");
@@ -25,10 +26,10 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex flex-col space-y-8 items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
         <h2 className="text-2xl font-bold text-center mb-8 text-gray-800">
-          Login to BlueSky
+          Login to Bluesky
         </h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -82,6 +83,11 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           </button>
         </form>
       </div>
+      <BlueSkyFlutter
+        href="https://bsky.app/profile/nico.fyi"
+        text="Made by @nico.fyi"
+        className="text-blue-600"
+      />
     </div>
   );
 }
