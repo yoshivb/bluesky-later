@@ -48,8 +48,10 @@ export function PostScheduler() {
 
       toast.success("Post scheduled successfully!");
       setContent("");
-      setScheduledDate("");
-      setScheduledTime("");
+
+      const defaultDate = addHours(new Date(), 24);
+      setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
+      setScheduledTime(format(defaultDate, "HH:mm"));
       setImage(undefined);
     } catch (error: unknown) {
       console.log(error);
