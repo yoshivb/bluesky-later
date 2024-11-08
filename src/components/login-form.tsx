@@ -4,7 +4,11 @@ import { login } from "../lib/bluesky";
 import toast from "react-hot-toast";
 import { BlueSkyFlutter } from "./bluesky-flutter";
 
-export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
+export function LoginForm({
+  onSuccess,
+}: {
+  onSuccess: (identifier: string) => void;
+}) {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +20,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     try {
       await login(identifier, password);
       toast.success("Successfully logged in!");
-      onSuccess();
+      onSuccess(identifier);
     } catch (error: unknown) {
       console.log(error);
       toast.error("Failed to login. Please check your credentials.");

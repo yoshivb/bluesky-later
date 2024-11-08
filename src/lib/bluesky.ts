@@ -34,7 +34,7 @@ export const agent = new BskyAgent({
 
 export async function getStoredCredentials() {
   const creds = await db.credentials.toArray();
-  return creds[0];
+  return creds.at(0);
 }
 
 export async function login(identifier: string, password: string) {

@@ -8,28 +8,24 @@ import { db } from "./lib/db";
 import { Footer } from "./components/footer";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [identifier, setIdentifier] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
-  const [identifier, setIdentifier] = useState("");
 
   useEffect(() => {
     const checkAuth = async () => {
       const creds = await getStoredCredentials();
-      if (creds && creds.identifier) {
-        setIdentifier(creds.identifier);
-      }
-      setIsAuthenticated(!!creds);
+      setIdentifier(creds?.identifier);
       setIsLoading(false);
     };
     checkAuth();
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (identifier) {
       const interval = setInterval(checkScheduledPosts, 60000); // Check every minute
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated]);
+  }, [identifier]);
 
   if (isLoading) {
     return (
@@ -39,10 +35,10 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!identifier) {
     return (
       <div className="relative">
-        <LoginForm onSuccess={() => setIsAuthenticated(true)} />
+        <LoginForm onSuccess={setIdentifier} />
         <Toaster position="top-right" />
       </div>
     );
@@ -50,7 +46,7 @@ function App() {
 
   const handleLogout = async () => {
     await db.credentials.clear(); // Clear credentials from the database
-    setIsAuthenticated(false); // Update authenticated state
+    setIdentifier(undefined); // Update authenticated state
   };
 
   return (
