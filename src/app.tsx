@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { LoginForm } from "./components/LoginForm";
-import { PostScheduler } from "./components/PostScheduler";
-import { ScheduledPosts } from "./components/ScheduledPosts";
+import { LoginForm } from "./components/login-form";
+import { PostScheduler } from "./components/post-scheduler";
+import { ScheduledPosts } from "./components/scheduled-posts";
 import { getStoredCredentials, checkScheduledPosts } from "./lib/bluesky";
 import { Toaster } from "react-hot-toast";
 

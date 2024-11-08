@@ -3,7 +3,7 @@ import { Calendar, Clock, Send } from "lucide-react";
 import { db } from "../lib/db";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
-import { ImageUpload } from "./ImageUpload";
+import { ImageUpload } from "./image-upload";
 
 export function PostScheduler() {
   const [content, setContent] = useState("");
