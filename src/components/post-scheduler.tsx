@@ -4,6 +4,7 @@ import { db } from "../lib/db";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
 import { ImageUpload } from "./image-upload";
+import { OfflineInfo } from "./offline-info";
 
 export function PostScheduler() {
   const [content, setContent] = useState("");
@@ -122,6 +123,7 @@ export function PostScheduler() {
           <Send className="h-5 w-5" />
           Schedule Post
         </button>
+        <OfflineInfo />
       </form>
     </div>
   );
