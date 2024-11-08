@@ -9,10 +9,12 @@ import { db } from "./lib/db";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [identifier, setIdentifier] = useState("");
 
   useEffect(() => {
     const checkAuth = async () => {
       const creds = await getStoredCredentials();
+      setIdentifier(creds.identifier);
       setIsAuthenticated(!!creds);
       setIsLoading(false);
     };
@@ -53,13 +55,10 @@ function App() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">
-            BlueSky Post Scheduler
+            Bluesky Post Scheduler
           </h1>
-          <button
-            className="text-blue-600 hover:underline"
-            onClick={handleLogout}
-          >
-            Logout
+          <button className="hover:underline text-sm" onClick={handleLogout}>
+            Logout (@{identifier})
           </button>
         </div>
       </header>
