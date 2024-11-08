@@ -4,6 +4,7 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  publicDir: "public", // This is already the default
   optimizeDeps: {
     exclude: ["lucide-react"],
   },
