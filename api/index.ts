@@ -155,6 +155,7 @@ app.post("/api/cron/check-posts", async (req, res) => {
   console.log("Checking posts");
   const authHeader = req.headers.authorization;
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    console.log("cron unauthorized", authHeader);
     return res.status(401).json({ error: "Unauthorized" });
   }
 
