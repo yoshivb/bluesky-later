@@ -15,12 +15,15 @@ async function checkBlueskyAuth() {
 
 async function checkApiCredentials() {
   try {
-    const response = await fetch("/api/auth/check", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/auth/check`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
     return response.status === 200;
   } catch (error) {
     console.error("Failed to check API credentials:", error);
