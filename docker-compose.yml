@@ -1,5 +1,3 @@
-# docker-compose.yml
-version: "3.8"
 services:
   postgres:
     image: postgres:15-alpine
@@ -9,8 +7,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-bluesky_scheduler}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
   api:
     build:
@@ -19,18 +15,16 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://bluesky:bluesky@postgres:5432/bluesky_scheduler}
       CRON_SECRET: ${CRON_SECRET:-your-secret-here}
-    ports:
-      - "3000:3000"
     depends_on:
       - postgres
 
   frontend:
     build: .
     environment:
-      VITE_API_URL: http://localhost:3000
+      VITE_API_URL: ${VITE_API_URL:-http://api:3000}
       VITE_STORAGE_MODE: remote
-    ports:
-      - "8080:80"
+      VITE_METADATA_FETCHER_URL: ${VITE_METADATA_FETCHER_URL:-https://linkpreview.magic.coolify.nico.fyi/api/v1/preview?url=}
+      VITE_IMAGE_PROXY_URL: ${VITE_IMAGE_PROXY_URL:-https://allorigins.magic.coolify.nico.fyi/raw?url=}
     depends_on:
       - api
 
