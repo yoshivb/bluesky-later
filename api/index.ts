@@ -163,6 +163,8 @@ app.post("/api/cron/check-posts", async (req, res) => {
     ["pending"]
   );
 
+  console.log(posts);
+
   for (const post of posts) {
     try {
       const {
