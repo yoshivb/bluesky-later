@@ -11,19 +11,20 @@ A web application to schedule posts on Bluesky. There are two versions of the ap
 
 ## Browser Mode
 
-- [https://bskylater.nico.fyi](https://bskylater.nico.fyi)
+- Completely free. You can use it now here: [https://bskylater.nico.fyi](https://bskylater.nico.fyi)
 - This is the default mode of the app.
 - It uses the browser's IndexedDB to store the credentials and the scheduled posts.
 - **The scheduled posts will be sent to Bluesky at the scheduled time as long as the browser tab is open and you have internet connection.**
-- You can deploy this app to GitHub Pages by simply forking this repository and add these repository variables:
+- You can deploy this app to your own GitHub Pages by simply forking this repository and add these [repository variables](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables):
   - `VITE_IMAGE_PROXY_URL`: `https://allorigins.magic.coolify.nico.fyi/raw?url=`.
   - `VITE_METADATA_FETCHER_URL`: `https://linkpreview.magic.coolify.nico.fyi/api/v1/preview?url=`.
 
-You can set different values for these variables. Read [below](#website-card-embeds) for more details.
+You can set different values for these variables. Read [Website Card Embeds](#website-card-embeds) for more details.
 
 ## Self Hosted Mode
 
-- The scheduled posts will be sent to Bluesky at the scheduled time from the API server.
+- You need a server to host the app.
+- The scheduled posts will be sent to Bluesky at the scheduled time from the API server so you don't need to keep the tab open like in the browser mode.
 - The scheduled posts and credentials are stored in a PostgreSQL database.
 - This mode only supports single user.
 - You can deploy this mode using the [docker-compose.yml file](https://github.com/nicnocquee/bluesky-scheduler/blob/main/docker-compose.yml) provided in the repository and set the environment variables accordingly.
@@ -38,8 +39,6 @@ You can set different values for these variables. Read [below](#website-card-emb
 - `VITE_METADATA_FETCHER_URL`: The URL of the metadata fetcher service.
 - `VITE_IMAGE_PROXY_URL`: The URL of the image proxy service.
 - `VITE_API_URL`: The URL of the API server.
-
-Notes:
 
 The docker-compose.yml file sets default values for these environment variables. **You must change them especially the `POSTGRES_PASSWORD` and `CRON_SECRET` if you want to use the app in production.**
 
