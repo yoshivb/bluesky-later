@@ -1,118 +1,30 @@
 import { BskyAgent, RichText } from "@atproto/api";
-import { createDatabase, db } from "./db";
-import { BlobRefType, PostData } from "./db/types";
+import { BlobRefType, PostData } from "@/lib/db/types";
+import { fetchUrlMetadata } from "./metadata";
 
-interface WebsiteData {
-  lang: string;
-  author: string;
-  title: string;
-  publisher: string;
-  image?: string;
-  url: string;
-  description: string;
-  date: string;
-}
+const db = async () => await import("@/lib/db").then((mod) => mod.db);
 
 export const agent = new BskyAgent({
   service: "https://bsky.social",
 });
 
 export async function getStoredCredentials() {
-  const creds = await db.getCredentials();
+  const creds = await (await db()).getCredentials();
   return creds;
 }
 
 export async function login(identifier: string, password: string) {
   await agent.login({ identifier, password });
-  await db.setCredentials({ identifier, password });
+  await (await db()).setCredentials({ identifier, password });
 }
-
-async function fetchUrlMetadata(url: string) {
-  try {
-    const metadataFetcherResponse = await fetch(
-      `${import.meta.env.VITE_METADATA_FETCHER_URL}${url}`
-    );
-    const metadataFetcherResponseJson =
-      (await metadataFetcherResponse.json()) as WebsiteData;
-
-    if (!metadataFetcherResponseJson) {
-      throw new Error("Failed to fetch metadata");
-    }
-
-    const { title, description, image } = metadataFetcherResponseJson;
-
-    console.log(image);
-    let websiteImage: BlobRefType | undefined = undefined;
-    let websiteImageLocalUrl: string | undefined = undefined;
-    try {
-      if (image) {
-        const proxyUrl = `${import.meta.env.VITE_IMAGE_PROXY_URL}${image}`;
-        const imageResponse = await fetch(proxyUrl);
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to fetch image: ${imageResponse.status}`);
-        }
-        const imageBlob = await imageResponse.blob();
-        const file = new File([imageBlob], `preview.${imageBlob.type}`, {
-          type: imageBlob.type,
-        });
-        const uploadResult = await uploadImage(file);
-        websiteImage = uploadResult.blobRef;
-        websiteImageLocalUrl = URL.createObjectURL(file);
-      }
-    } catch (error) {
-      console.error("Failed to fetch image:", error);
-    }
-
-    return {
-      uri: url,
-      title: title || url,
-      description: description || "",
-      thumb: websiteImage,
-      websiteImageLocalUrl,
-    };
-  } catch (error) {
-    console.error("Error fetching metadata:", error);
-    return {
-      uri: url,
-      title: url,
-      description: "",
-      thumb: undefined,
-      websiteImageLocalUrl: undefined,
-    };
-  }
-}
-
-export async function uploadImage(file: File) {
-  const creds = await getStoredCredentials();
-  if (!creds) throw new Error("Not authenticated");
-
-  await agent.login({ identifier: creds.identifier, password: creds.password });
-
-  const buffer = await file.arrayBuffer();
-  const uint8Array = new Uint8Array(buffer);
-  const response = await agent.uploadBlob(uint8Array, {
-    encoding: file.type,
-  });
-
-  // Structure the blob reference with $link
-  return {
-    blobRef: {
-      $type: "blob",
-      ref: {
-        $link: response.data.blob.ref.toString(), // Convert the ref to the correct $link format
-      },
-      mimeType: response.data.blob.mimeType,
-      size: response.data.blob.size,
-    },
-    type: file.type,
-    url: URL.createObjectURL(file), // Add this for local preview
-  };
-}
-
-export type UploadImageResult = Awaited<ReturnType<typeof uploadImage>>;
 
 export async function checkScheduledPosts(workerCredentials?: string) {
-  const workerDb = workerCredentials ? createDatabase(workerCredentials) : db;
+  const workerDb = workerCredentials
+    ? await (async () => {
+        const { createDatabase } = await import("@/lib/db");
+        return createDatabase(workerCredentials);
+      })()
+    : await db();
   const pendingPosts = await workerDb.getPendingPosts();
 
   const creds = await workerDb.getCredentials();
@@ -127,10 +39,10 @@ export async function checkScheduledPosts(workerCredentials?: string) {
     for (const post of pendingPosts) {
       try {
         await agent.post(post.data);
-        await db.updatePost(post.id!, { status: "published" });
+        await (await db()).updatePost(post.id!, { status: "published" });
       } catch (error: unknown) {
         console.error("Post creation error:", error);
-        await db.updatePost(post.id!, { status: "published" });
+        await (await db()).updatePost(post.id!, { status: "published" });
       }
     }
   } catch (error: unknown) {
@@ -151,6 +63,9 @@ export const getPostData = async ({
     url?: string;
   };
 }): Promise<PostData> => {
+  const credentials = await (await db()).getCredentials();
+  if (!credentials) throw new Error("No credentials set");
+
   // Create a RichText instance
   const richText = new RichText({ text: content });
   // Process the text to detect mentions, links, etc.
@@ -163,7 +78,7 @@ export const getPostData = async ({
   };
 
   if (url) {
-    const external = await fetchUrlMetadata(url);
+    const external = await fetchUrlMetadata(url, agent, credentials);
     postData.embed = {
       $type: "app.bsky.embed.external",
       external,

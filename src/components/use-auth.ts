@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { getStoredCredentials } from "../lib/bluesky";
 
 interface AuthState {
   identifier: string | undefined;
@@ -9,6 +8,7 @@ interface AuthState {
 }
 
 async function checkBlueskyAuth() {
+  const { getStoredCredentials } = await import("@/lib/bluesky");
   const creds = await getStoredCredentials();
   return creds?.identifier;
 }

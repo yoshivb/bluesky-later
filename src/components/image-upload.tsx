@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
-import { uploadImage } from "../lib/bluesky";
 import toast from "react-hot-toast";
 import { BlobRefType } from "@/lib/db/types";
 
@@ -46,7 +45,12 @@ export function ImageUpload({
 
     setIsUploading(true);
     try {
-      const { url, type, blobRef } = await uploadImage(file);
+      const { agent } = await import("@/lib/bluesky");
+      const { getStoredCredentials } = await import("@/lib/bluesky");
+      const { uploadImage } = await import("@/lib/bluesky-image");
+      const creds = await getStoredCredentials();
+      if (!creds) throw new Error("No credentials set");
+      const { url, type, blobRef } = await uploadImage(file, agent, creds);
       onImageSelect({
         url,
         type,

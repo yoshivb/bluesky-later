@@ -1,13 +1,32 @@
-import { useEffect } from "react";
-import { LoginForm } from "./components/login-form";
-import { PostScheduler } from "./components/post-scheduler";
-import { ScheduledPosts } from "./components/scheduled-posts";
+import { useEffect, lazy, Suspense } from "react";
+import { PostScheduler } from "@/components/post-scheduler";
+import { ScheduledPosts } from "@/components/scheduled-posts";
 import { Toaster } from "react-hot-toast";
-import { db } from "./lib/db";
-import { Footer } from "./components/footer";
-import { SetupForm } from "./components/setup-form";
-import { ApiLoginForm } from "./components/api-login-form";
-import { useAuth } from "./components/use-auth";
+import { Footer } from "@/components/footer";
+import { useAuth } from "@/components/use-auth";
+
+const ApiLoginForm = lazy(() =>
+  import("@/components/api-login-form").then((comp) => ({
+    default: comp.ApiLoginForm,
+  }))
+);
+const LoginForm = lazy(() =>
+  import("@/components/login-form").then((comp) => ({
+    default: comp.LoginForm,
+  }))
+);
+const SetupForm = lazy(() =>
+  import("@/components/setup-form").then((comp) => ({
+    default: comp.SetupForm,
+  }))
+);
+
+// Loading component for Suspense fallback
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 function App() {
   const {
@@ -42,17 +61,15 @@ function App() {
   }, [identifier]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (import.meta.env.VITE_STORAGE_MODE === "remote" && !hasApiCredentials) {
     return (
       <div className="relative">
-        <SetupForm onSuccess={() => updateApiAuth(true)} />
+        <Suspense fallback={<LoadingSpinner />}>
+          <SetupForm onSuccess={() => updateApiAuth(true)} />
+        </Suspense>
         <Toaster position="top-right" />
       </div>
     );
@@ -61,7 +78,9 @@ function App() {
   if (import.meta.env.VITE_STORAGE_MODE === "remote" && !isApiAuthenticated) {
     return (
       <div className="relative">
-        <ApiLoginForm onSuccess={() => updateApiAuth(true)} />
+        <Suspense fallback={<LoadingSpinner />}>
+          <ApiLoginForm onSuccess={() => updateApiAuth(true)} />
+        </Suspense>
         <Toaster position="top-right" />
       </div>
     );
@@ -70,13 +89,16 @@ function App() {
   if (!identifier) {
     return (
       <div className="relative">
-        <LoginForm onSuccess={updateIdentifier} />
+        <Suspense fallback={<LoadingSpinner />}>
+          <LoginForm onSuccess={updateIdentifier} />
+        </Suspense>
         <Toaster position="top-right" />
       </div>
     );
   }
 
   const handleLogout = async () => {
+    const { db } = await import("@/lib/db");
     await db.deleteCredentials();
     updateIdentifier(undefined);
   };

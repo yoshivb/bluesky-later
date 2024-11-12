@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import { Calendar, Clock, Send } from "lucide-react";
-import { db } from "../lib/db";
 import toast from "react-hot-toast";
 import { format, addHours } from "date-fns";
-import { ImageUpload } from "./image-upload";
-import { OfflineInfo } from "./offline-info";
-import { useLocalStorage } from "./hooks/use-local-storage";
-import { getPostData } from "@/lib/bluesky";
+import { ImageUpload } from "@/components/image-upload";
+import { OfflineInfo } from "@/components/offline-info";
+import { useLocalStorage } from "@/components/hooks/use-local-storage";
 import { BlobRefType } from "@/lib/db/types";
 
 export function PostScheduler() {
@@ -44,11 +42,13 @@ export function PostScheduler() {
 
     try {
       setIsLoading(true);
+      const { getPostData } = await import("@/lib/bluesky");
       const postData = await getPostData({
         content,
         url: firstUrl,
         image,
       });
+      const { db } = await import("@/lib/db");
       await db.createPost({
         data: postData,
         scheduledFor,

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { AtSign, Lock } from "lucide-react";
-import { login } from "../lib/bluesky";
 import toast from "react-hot-toast";
 import { BlueSkyFlutter } from "./bluesky-flutter";
 
@@ -18,6 +17,7 @@ export function LoginForm({
     setIsLoading(true);
 
     try {
+      const { login } = await import("@/lib/bluesky");
       await login(identifier, password);
       toast.success("Successfully logged in!");
       onSuccess(identifier);
