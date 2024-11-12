@@ -1,9 +1,10 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, useState } from "react";
 import { PostScheduler } from "@/components/post-scheduler";
 import { ScheduledPosts } from "@/components/scheduled-posts";
 import { Toaster } from "react-hot-toast";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/components/use-auth";
+import { MenuIcon } from "lucide-react";
 
 const ApiLoginForm = lazy(() =>
   import("@/components/api-login-form").then((comp) => ({
@@ -18,6 +19,11 @@ const LoginForm = lazy(() =>
 const SetupForm = lazy(() =>
   import("@/components/setup-form").then((comp) => ({
     default: comp.SetupForm,
+  }))
+);
+const SettingsForm = lazy(() =>
+  import("@/components/settings-form").then((comp) => ({
+    default: comp.SettingsForm,
   }))
 );
 
@@ -37,6 +43,13 @@ function App() {
     updateIdentifier,
     updateApiAuth,
   } = useAuth();
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsMenuOpen((prevState) => !prevState);
+  };
 
   useEffect(() => {
     if (import.meta.env.VITE_STORAGE_MODE !== "remote") {
@@ -97,6 +110,17 @@ function App() {
     );
   }
 
+  if (isSettingsOpen) {
+    return (
+      <div className="relative">
+        <Suspense fallback={<LoadingSpinner />}>
+          <SettingsForm onClose={() => setIsSettingsOpen(false)} />
+        </Suspense>
+        <Toaster position="top-right" />
+      </div>
+    );
+  }
+
   const handleLogout = async () => {
     const { db } = await import("@/lib/db");
     await db.deleteCredentials();
@@ -108,9 +132,27 @@ function App() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">Bluesky Later</h1>
-          <button className="hover:underline text-sm" onClick={handleLogout}>
-            Logout (@{identifier})
-          </button>
+          <div className="relative">
+            <button className="hover:underline text-sm" onClick={toggleMenu}>
+              <MenuIcon />
+            </button>
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md z-10">
+                <button
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-200"
+                  onClick={() => setIsSettingsOpen(true)}
+                >
+                  Settings
+                </button>
+                <button
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-200"
+                  onClick={handleLogout}
+                >
+                  Logout (@{identifier})
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
