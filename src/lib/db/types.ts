@@ -41,6 +41,7 @@ export type PostData = {
       title: string;
       description: string;
       thumb?: BlobRefType;
+      websiteImageLocalUrl?: string;
     };
   };
 };

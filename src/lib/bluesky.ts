@@ -63,8 +63,6 @@ async function fetchUrlMetadata(url: string) {
       console.error("Failed to fetch image:", error);
     }
 
-    console.log(websiteImage);
-
     return {
       uri: url,
       title: title || url,
@@ -79,6 +77,7 @@ async function fetchUrlMetadata(url: string) {
       title: url,
       description: "",
       thumb: undefined,
+      websiteImageLocalUrl: undefined,
     };
   }
 }
@@ -164,11 +163,10 @@ export const getPostData = async ({
   };
 
   if (url) {
-    const { websiteImageLocalUrl, ...urlEmbed } = await fetchUrlMetadata(url);
-    console.log(websiteImageLocalUrl);
+    const external = await fetchUrlMetadata(url);
     postData.embed = {
       $type: "app.bsky.embed.external",
-      external: urlEmbed,
+      external,
     };
   } else if (image?.blobRef) {
     postData.embed = {

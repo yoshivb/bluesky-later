@@ -1,6 +1,13 @@
 import { db, Post } from "../lib/db";
 import { format } from "date-fns";
-import { AlertCircle, CheckCircle, Clock, Image, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Image,
+  Link,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useCallback } from "react";
 import { useLocalStorage } from "./hooks/use-local-storage";
@@ -66,6 +73,9 @@ export function ScheduledPosts() {
         {posts.map((post) => {
           if (!post.data) return null;
           const firstImage = post.data.embed?.images?.[0];
+          const websiteImage = post.data.embed?.external?.websiteImageLocalUrl;
+          const imageUrl = firstImage?.localUrl || websiteImage;
+          const imageAlt = firstImage?.alt;
           return (
             <div
               key={post.id}
@@ -74,16 +84,16 @@ export function ScheduledPosts() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <p className="text-gray-900 mb-2">{post.data.text}</p>
-                  {firstImage && (
+                  {imageUrl && (
                     <div className="mb-2 space-y-2">
                       <img
-                        src={firstImage.localUrl}
-                        alt={firstImage.alt}
+                        src={imageUrl}
+                        alt={imageAlt}
                         className="w-32 h-32 object-cover rounded-lg"
                       />
-                      {firstImage.alt ? (
+                      {imageAlt ? (
                         <p className="text-sm text-gray-400">
-                          <strong>Alt text:</strong> {firstImage.alt}
+                          <strong>Alt text:</strong> {imageAlt}
                         </p>
                       ) : null}
                     </div>
@@ -99,6 +109,13 @@ export function ScheduledPosts() {
                         <span className="mx-1">•</span>
                         <Image className="h-4 w-4" />
                         <span>Has image</span>
+                      </>
+                    )}
+                    {websiteImage && imageUrl && (
+                      <>
+                        <span className="mx-1">•</span>
+                        <Link className="h-4 w-4" />
+                        <span>Social card</span>
                       </>
                     )}
                   </div>
