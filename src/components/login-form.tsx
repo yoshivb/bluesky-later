@@ -32,7 +32,12 @@ export function LoginForm({
   return (
     <div className="min-h-screen flex flex-col space-y-8 items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="space-y-2 text-center text-muted-foreground">
-        <h1 className="text-4xl font-bold text-black">Bluesky Later</h1>
+        <h1 className="text-4xl font-bold text-black">
+          Bluesky Later{" "}
+          {import.meta.env.VITE_STORAGE_MODE !== "remote"
+            ? "Browser Mode"
+            : "Self Hosted Mode"}
+        </h1>
         <p>A simple web app to schedule posts on Bluesky</p>
       </div>
       <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
@@ -79,7 +84,10 @@ export function LoginForm({
               >
                 new app password here
               </a>
-              . Your credentials will be saved in this browser's IndexDB.
+              .{" "}
+              {import.meta.env.VITE_STORAGE_MODE !== "remote"
+                ? "Your credentials will be saved in this browser's IndexDB."
+                : "Your credentials will be saved in the PostgreSQL database that is used by the API server."}
             </p>
           </div>
           <button
