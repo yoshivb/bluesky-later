@@ -17,6 +17,25 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint
+app.get("/health", async (_req, res) => {
+  try {
+    // Test database connection
+    await pool.query("SELECT 1");
+
+    res.json({
+      status: "healthy",
+      database: "connected",
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: "unhealthy",
+      database: "disconnected",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
 app.post("/api/auth/setup", async (req, res) => {
   const { username, password } = req.body;
 

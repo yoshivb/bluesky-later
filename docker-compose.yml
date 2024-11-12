@@ -7,6 +7,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-bluesky_scheduler}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bluesky}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -17,6 +22,11 @@ services:
       CRON_SECRET: ${CRON_SECRET:-your-secret-here}
     depends_on:
       - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
     build:
@@ -33,6 +43,11 @@ services:
       VITE_IMAGE_PROXY_URL: ${VITE_IMAGE_PROXY_URL:-https://allorigins.magic.coolify.nico.fyi/raw?url=}
     depends_on:
       - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   cron:
     image: alpine
@@ -48,6 +63,11 @@ services:
         sleep 60;
       done
       "
+    healthcheck:
+      test: ["CMD", "ps", "aux", "|", "grep", "[c]url"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:
