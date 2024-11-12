@@ -75,12 +75,17 @@ export function ScheduledPosts() {
                 <div className="flex-1">
                   <p className="text-gray-900 mb-2">{post.data.text}</p>
                   {firstImage && (
-                    <div className="mb-2">
+                    <div className="mb-2 space-y-2">
                       <img
-                        src={firstImage.image.ref.$link}
+                        src={firstImage.localUrl}
                         alt={firstImage.alt}
                         className="w-32 h-32 object-cover rounded-lg"
                       />
+                      {firstImage.alt ? (
+                        <p className="text-sm text-gray-400">
+                          <strong>Alt text:</strong> {firstImage.alt}
+                        </p>
+                      ) : null}
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-sm text-gray-500">
