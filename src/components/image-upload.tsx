@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { BlobRefType } from "@/lib/db/types";
 
 interface ImageUploadProps {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Calendar, Clock, Send } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { format, addHours } from "date-fns";
 import { ImageUpload } from "@/components/image-upload";
 import { OfflineInfo } from "@/components/offline-info";

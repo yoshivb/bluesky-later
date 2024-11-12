@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { User, Lock } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export function SetupForm({ onSuccess }: { onSuccess: () => void }) {
   const [username, setUsername] = useState("");

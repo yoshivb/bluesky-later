@@ -1,10 +1,16 @@
 import { useEffect, lazy, Suspense, useState } from "react";
 import { PostScheduler } from "@/components/post-scheduler";
 import { ScheduledPosts } from "@/components/scheduled-posts";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "@/components/ui/sonner";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/components/use-auth";
 import { MenuIcon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ApiLoginForm = lazy(() =>
   import("@/components/api-login-form").then((comp) => ({
@@ -43,13 +49,7 @@ function App() {
     updateIdentifier,
     updateApiAuth,
   } = useAuth();
-
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const toggleMenu = () => {
-    setIsMenuOpen((prevState) => !prevState);
-  };
 
   useEffect(() => {
     if (import.meta.env.VITE_STORAGE_MODE !== "remote") {
@@ -83,7 +83,7 @@ function App() {
         <Suspense fallback={<LoadingSpinner />}>
           <SetupForm onSuccess={() => updateApiAuth(true)} />
         </Suspense>
-        <Toaster position="top-right" />
+        <Toaster />
       </div>
     );
   }
@@ -94,7 +94,7 @@ function App() {
         <Suspense fallback={<LoadingSpinner />}>
           <ApiLoginForm onSuccess={() => updateApiAuth(true)} />
         </Suspense>
-        <Toaster position="top-right" />
+        <Toaster />
       </div>
     );
   }
@@ -105,18 +105,7 @@ function App() {
         <Suspense fallback={<LoadingSpinner />}>
           <LoginForm onSuccess={updateIdentifier} />
         </Suspense>
-        <Toaster position="top-right" />
-      </div>
-    );
-  }
-
-  if (isSettingsOpen) {
-    return (
-      <div className="relative">
-        <Suspense fallback={<LoadingSpinner />}>
-          <SettingsForm onClose={() => setIsSettingsOpen(false)} />
-        </Suspense>
-        <Toaster position="top-right" />
+        <Toaster />
       </div>
     );
   }
@@ -128,47 +117,46 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Bluesky Later</h1>
-          <div className="relative">
-            <button className="hover:underline text-sm" onClick={toggleMenu}>
-              <MenuIcon />
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md z-10">
-                <button
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-200"
-                  onClick={() => setIsSettingsOpen(true)}
-                >
+    <>
+      <div className="min-h-screen bg-muted">
+        <header className="bg-white shadow">
+          <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-gray-900">Bluesky Later</h1>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="hover:bg-gray-100 p-2 rounded-md">
+                  <MenuIcon className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 bg-white p-2 border border-gray-100">
+                <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
                   Settings
-                </button>
-                <button
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-200"
-                  onClick={handleLogout}
-                >
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   Logout (@{identifier})
-                </button>
-              </div>
-            )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="px-6 lg:px-8 mb-8">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-0 sm:grid sm:grid-cols-2 gap-2">
-          <div className="w-full">
-            <PostScheduler />
+        <main className="px-6 lg:px-8 mb-8">
+          <div className="max-w-7xl mx-auto px-4 py-6 sm:px-0 sm:grid sm:grid-cols-2 gap-2">
+            <div className="w-full">
+              <PostScheduler />
+            </div>
+            <div className="w-full">
+              <ScheduledPosts />
+            </div>
           </div>
-          <div className="w-full">
-            <ScheduledPosts />
-          </div>
-        </div>
-      </main>
-      <Toaster position="top-right" />
-      <Footer />
-    </div>
+        </main>
+        <Toaster />
+        <Footer />
+      </div>
+      <Suspense fallback={null}>
+        <SettingsForm open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+      </Suspense>
+    </>
   );
 }
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AtSign, Lock } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { BlueSkyFlutter } from "./bluesky-flutter";
 
 export function LoginForm({
