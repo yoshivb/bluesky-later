@@ -8,7 +8,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bluesky}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-bluesky} -d ${POSTGRES_DB:-bluesky_scheduler}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
