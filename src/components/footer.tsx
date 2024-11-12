@@ -10,7 +10,7 @@ export function Footer() {
           className="text-gray-500 text-sm"
         />
         <a
-          href="https://github.com/nicnocquee/bluesky-scheduler"
+          href="https://github.com/nicnocquee/bluesky-later"
           target="_blank"
           className="text-gray-500 text-sm"
         >

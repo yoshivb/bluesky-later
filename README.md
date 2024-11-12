@@ -27,7 +27,7 @@ You can set different values for these variables. Read [Website Card Embeds](#we
 - The scheduled posts will be sent to Bluesky at the scheduled time from the API server so you don't need to keep the tab open like in the browser mode.
 - The scheduled posts and credentials are stored in a PostgreSQL database.
 - This mode only supports single user.
-- You can deploy this mode using the [docker-compose.yml file](https://github.com/nicnocquee/bluesky-scheduler/blob/main/docker-compose.yml) provided in the repository and set the environment variables accordingly.
+- You can deploy this mode using the [docker-compose.yml file](https://github.com/nicnocquee/bluesky-later/blob/main/docker-compose.yml) provided in the repository and set the environment variables accordingly.
 
 ### Environment Variables
 

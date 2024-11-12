@@ -106,7 +106,7 @@ export function LoginForm({
           className="text-blue-600"
         />
         <a
-          href="https://github.com/nicnocquee/bluesky-scheduler"
+          href="https://github.com/nicnocquee/bluesky-later"
           target="_blank"
           className="underline text-muted-foreground"
         >
