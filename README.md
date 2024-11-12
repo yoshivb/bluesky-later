@@ -9,13 +9,6 @@ A web application to schedule posts on Bluesky. There are two versions of the ap
 - Attach an image to the post.
 - A link in the post will be displayed as a [social card](https://docs.bsky.app/docs/advanced-guides/posts#website-card-embeds).
 
-### Website Card Embeds
-
-Bluesky unfortunately does not automatically generate a social card for the website when a user posts a link to a website via the API. The application needs to generate the social card manually. In this app, it uses the service specified in the `VITE_METADATA_FETCHER_URL` environment variable to fetch the metadata of the website. And for the image of the card, it uses the service specified in the `VITE_IMAGE_PROXY_URL` environment variable to fetch the image to work around the CORS issue. By default, the application uses
-
-- [linkpreview.magic.coolify.nico.fyi](https://linkpreview.magic.coolify.nico.fyi) for the metadata fetcher. The source code of the service is available [here](https://github.com/nicnocquee/link-preview-api).
-- [allorigins.magic.coolify.nico.fyi](https://allorigins.magic.coolify.nico.fyi) for the image proxy. The source code of the service is available [here](https://github.com/nicnocquee/allOrigins).
-
 ## Browser Mode
 
 - [https://bskylater.nico.fyi](https://bskylater.nico.fyi)
@@ -25,6 +18,8 @@ Bluesky unfortunately does not automatically generate a social card for the webs
 - You can deploy this app to GitHub Pages by simply forking this repository and add these repository variables:
   - `VITE_IMAGE_PROXY_URL`: `https://allorigins.magic.coolify.nico.fyi/raw?url=`.
   - `VITE_METADATA_FETCHER_URL`: `https://linkpreview.magic.coolify.nico.fyi/api/v1/preview?url=`.
+
+You can set different values for these variables. Read [below](#website-card-embeds) for more details.
 
 ## Self Hosted Mode
 
@@ -55,6 +50,13 @@ The app has the following components:
 - API server: This is the server that handles the scheduled posts and credentials. It connects to the PostgreSQL database and sends the scheduled posts to Bluesky.
 - Frontend: This is the frontend of the app where user can schedule posts and view the scheduled posts. It connects to the API server to fetch the scheduled posts and credentials.
 - Cron: This is a cron job that runs every minute and checks the scheduled posts by sending a request to an end point on the API server.
+
+## Website Card Embeds
+
+Bluesky unfortunately does not automatically generate a social card for the website when a user posts a link to a website via the API. The application needs to generate the social card manually. In this app, it uses the service specified in the `VITE_METADATA_FETCHER_URL` environment variable to fetch the metadata of the website. And for the image of the card, it uses the service specified in the `VITE_IMAGE_PROXY_URL` environment variable to fetch the image to work around the CORS issue. By default, the application uses
+
+- [linkpreview.magic.coolify.nico.fyi](https://linkpreview.magic.coolify.nico.fyi) for the metadata fetcher. The source code of the service is available [here](https://github.com/nicnocquee/link-preview-api).
+- [allorigins.magic.coolify.nico.fyi](https://allorigins.magic.coolify.nico.fyi) for the image proxy. The source code of the service is available [here](https://github.com/nicnocquee/allOrigins).
 
 ## License
 
