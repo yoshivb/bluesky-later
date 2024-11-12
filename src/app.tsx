@@ -85,9 +85,7 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Bluesky Post Scheduler
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Bluesky Later</h1>
           <button className="hover:underline text-sm" onClick={handleLogout}>
             Logout (@{identifier})
           </button>
