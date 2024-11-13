@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Calendar, Clock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, addHours } from "date-fns";
@@ -72,66 +72,78 @@ export function PostScheduler() {
       }
     } else {
       setContent("");
-      setScheduledDate("");
-      setScheduledTime("");
-      setImage(undefined);
-    }
-  }, [toEditPost]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!content || !scheduledDate || !scheduledTime) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`);
-    const urls = extractUrls(content);
-    const firstUrl = urls[0]; // We'll use the first URL found
-
-    if (scheduledFor < new Date()) {
-      toast.error("Cannot schedule posts in the past");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const postData = await getPostData({
-        content,
-        url: firstUrl,
-        image,
-      });
-      if (toEditPost && toEditPost.id) {
-        await db()?.updatePost(toEditPost.id, {
-          data: postData,
-          scheduledFor,
-          status: "pending",
-        });
-      } else {
-        await db()?.createPost({
-          data: postData,
-          scheduledFor,
-          status: "pending",
-        });
-      }
-
-      toast.success("Post scheduled successfully!");
-      setContent("");
-
       const defaultDate = addHours(new Date(), 24);
       setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
       setScheduledTime(format(defaultDate, "HH:mm"));
       setImage(undefined);
-      setLastUpdated(new Date().toISOString());
-      setIsLoading(false);
-      clearToEditPost();
-    } catch (error: unknown) {
-      console.log(error);
-      toast.error("Failed to schedule post");
-      setIsLoading(false);
     }
-  };
+  }, [toEditPost]);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (!content || !scheduledDate || !scheduledTime) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+
+      const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`);
+      const urls = extractUrls(content);
+      const firstUrl = urls[0]; // We'll use the first URL found
+
+      if (scheduledFor < new Date()) {
+        toast.error("Cannot schedule posts in the past");
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const postData = await getPostData({
+          content,
+          url: firstUrl,
+          image,
+        });
+        if (toEditPost && toEditPost.id) {
+          await db()?.updatePost(toEditPost.id, {
+            data: postData,
+            scheduledFor,
+            status: "pending",
+          });
+        } else {
+          await db()?.createPost({
+            data: postData,
+            scheduledFor,
+            status: "pending",
+          });
+        }
+
+        toast.success("Post scheduled successfully!");
+        setContent("");
+
+        const defaultDate = addHours(new Date(), 24);
+        setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
+        setScheduledTime(format(defaultDate, "HH:mm"));
+        setImage(undefined);
+        setLastUpdated(new Date().toISOString());
+        setIsLoading(false);
+        clearToEditPost();
+      } catch (error: unknown) {
+        console.log(error);
+        toast.error("Failed to schedule post");
+        setIsLoading(false);
+      }
+    },
+    [
+      content,
+      scheduledDate,
+      scheduledTime,
+      image,
+      toEditPost,
+      setLastUpdated,
+      clearToEditPost,
+    ]
+  );
 
   return (
     <div className="mx-auto p-6">

@@ -167,8 +167,11 @@ app.delete("/api/posts/:id", async (req, res) => {
 
 app.patch("/api/posts/:id", async (req, res) => {
   const { id } = req.params;
-  const { data } = req.body;
-  await pool.query("UPDATE posts SET data = $1 WHERE id = $2", [data, id]);
+  const { data, scheduledFor } = req.body;
+  await pool.query(
+    "UPDATE posts SET data = $1, scheduled_for = $2 WHERE id = $3",
+    [data, scheduledFor, id]
+  );
   res.json({ success: true });
 });
 
