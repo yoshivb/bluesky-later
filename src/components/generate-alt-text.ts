@@ -5,17 +5,15 @@ export const systemPrompt =
 export const defaultPrompt = "Generate a concise alt text for this image.";
 
 export async function generateAltText(
-  imageUrl: string,
+  base64Image: string,
   apiKey: string,
   prompt = defaultPrompt
 ): Promise<string> {
   try {
     const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
-
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    const base64Image = await blobToBase64(blob);
-
+    const imageUrl = base64Image.startsWith("data:")
+      ? base64Image
+      : `data:image/jpeg;base64,${base64Image}`;
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -29,7 +27,7 @@ export async function generateAltText(
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`,
+                url: imageUrl,
               },
             },
             {
@@ -49,6 +47,13 @@ export async function generateAltText(
     console.error("Error generating alt text:", error);
     throw error;
   }
+}
+
+export async function base64FromRemoteUrl(url: string) {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  const base64Image = await blobToBase64(blob);
+  return base64Image;
 }
 
 function blobToBase64(blob: Blob): Promise<string> {

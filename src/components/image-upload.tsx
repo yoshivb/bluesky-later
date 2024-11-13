@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/tooltip";
 import { agent, getStoredCredentials } from "@/lib/bluesky";
 import { uploadImage } from "@/lib/bluesky-image";
-import { generateAltText } from "@/components/generate-alt-text";
+import {
+  base64FromRemoteUrl,
+  generateAltText,
+} from "@/components/generate-alt-text";
 
 type ImageData = {
   localUrl: string;
@@ -109,7 +112,8 @@ export function ImageUpload({
 
         setIsGeneratingAltText(true);
         const generatedAltText = await generateAltText(
-          selectedImage.localUrl,
+          localStorage.getItem(selectedImage.localUrl) ||
+            (await base64FromRemoteUrl(selectedImage.localUrl)),
           apiKey,
           systemPrompt || undefined
         );
@@ -183,7 +187,7 @@ export function ImageUpload({
             />
 
             <Tooltip>
-              <TooltipTrigger>
+              <TooltipTrigger asChild>
                 <button
                   type="button"
                   disabled={isGeneratingAltText || isUploading}
