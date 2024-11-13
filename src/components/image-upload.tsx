@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePlus, LoaderIcon, Sparkle, X } from "lucide-react";
 import { toast } from "sonner";
 import { BlobRefType } from "@/lib/db/types";
@@ -36,6 +36,12 @@ export function ImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [apiKey] = useLocalStorage("openaiApiKey", "");
   const [systemPrompt] = useLocalStorage("systemPrompt", "");
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setAltText("");
+    }
+  }, [selectedImage]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
