@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Calendar, Clock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, addHours } from "date-fns";
@@ -37,10 +37,33 @@ export function PostScheduler() {
           url: toEditPost.data.embed.images[0].localUrl || "",
           type: toEditPost.data.embed.images[0].image.mimeType || "",
           alt: toEditPost.data.embed.images[0].alt || "",
+          blobRef: toEditPost.data.embed.images[0].image,
         }
       : undefined
   );
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (toEditPost) {
+      setContent(toEditPost.data.text);
+      setScheduledDate(format(toEditPost.scheduledFor, "yyyy-MM-dd"));
+      setScheduledTime(format(toEditPost.scheduledFor, "HH:mm"));
+      if (toEditPost?.data.embed?.images?.[0]) {
+        setImage({
+          ...toEditPost.data.embed.images[0],
+          url: toEditPost.data.embed.images[0].localUrl || "",
+          type: toEditPost.data.embed.images[0].image.mimeType || "",
+          alt: toEditPost.data.embed.images[0].alt || "",
+          blobRef: toEditPost.data.embed.images[0].image,
+        });
+      }
+    } else {
+      setContent("");
+      setScheduledDate("");
+      setScheduledTime("");
+      setImage(undefined);
+    }
+  }, [toEditPost]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,11 +90,19 @@ export function PostScheduler() {
         url: firstUrl,
         image,
       });
-      await db?.createPost({
-        data: postData,
-        scheduledFor,
-        status: "pending",
-      });
+      if (toEditPost && toEditPost.id) {
+        await db?.updatePost(toEditPost.id, {
+          data: postData,
+          scheduledFor,
+          status: "pending",
+        });
+      } else {
+        await db?.createPost({
+          data: postData,
+          scheduledFor,
+          status: "pending",
+        });
+      }
 
       toast.success("Post scheduled successfully!");
       setContent("");
@@ -92,7 +123,9 @@ export function PostScheduler() {
 
   return (
     <div className="mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">Schedule New Post</h2>
+      <h2 className="text-2xl font-bold mb-6">
+        {toEditPost ? "Edit" : "Schedule New"} Post
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -5,6 +5,7 @@ import {
   Clock,
   Image,
   Link,
+  PenIcon,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,10 +13,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { Post } from "@/lib/db/types";
 import { db } from "@/lib/db";
+import { Button } from "./ui/button";
 
 export function ScheduledPosts() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [lastUpdated, setLastUpdated] = useLocalStorage("lastUpdated");
+  const [toEditPost, setToEditPost, clearToEditPost] =
+    useLocalStorage<Post>("toEditPost");
 
   const fetchPosts = useCallback(async () => {
     const fetchedPosts = await db?.getAllPosts();
@@ -60,10 +64,23 @@ export function ScheduledPosts() {
   if (!posts) return null;
 
   return (
-    <div className="mx-auto p-6">
+    <div className={cn("mx-auto p-6 relative")}>
+      {toEditPost && (
+        <div className="absolute inset-0 p-2 bg-white bg-opacity-60 flex flex-col items-center justify-center">
+          <Button
+            variant={"outline"}
+            onClick={() => {
+              clearToEditPost();
+            }}
+          >
+            Cancel editing
+          </Button>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Scheduled Posts</h2>
         <button
+          disabled={!!toEditPost}
           onClick={clearScheduledPosts}
           className={cn(
             "text-sm text-red-600 hover:text-red-700",
@@ -129,6 +146,16 @@ export function ScheduledPosts() {
                   {post.status === "pending" && (
                     <Clock className="h-5 w-5 text-yellow-500" />
                   )}
+                  {post.status !== "published" && (
+                    <button
+                      disabled={!!toEditPost}
+                      onClick={() => {
+                        setToEditPost(post);
+                      }}
+                    >
+                      <PenIcon className="h-5 w-5 text-gray-400" />
+                    </button>
+                  )}
                   {post.status === "published" && (
                     <CheckCircle className="h-5 w-5 text-green-500" />
                   )}
@@ -143,6 +170,7 @@ export function ScheduledPosts() {
                     </div>
                   )}
                   <button
+                    disabled={!!toEditPost}
                     onClick={() => post.id && deletePost(post.id)}
                     className="text-gray-400 hover:text-red-600 transition-colors"
                   >
