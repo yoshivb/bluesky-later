@@ -3,13 +3,26 @@ import { LocalDB } from "./local";
 import { RemoteDB } from "./remote";
 import { ApiCredentials } from "../api";
 
+let _db: RemoteDB | LocalDB | null = null;
+
 export function createDatabase(
   credentials?: ApiCredentials
-): DatabaseInterface {
+): DatabaseInterface | null {
   if (import.meta.env.VITE_STORAGE_MODE === "remote") {
-    return new RemoteDB(credentials);
+    if (!credentials) {
+      return null;
+    }
+    if (_db) {
+      return _db;
+    }
+    _db = new RemoteDB(credentials);
+    return _db;
   }
-  return new LocalDB();
+  if (_db) {
+    return _db;
+  }
+  _db = new LocalDB();
+  return _db;
 }
 
 export const db = createDatabase();

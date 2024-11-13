@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { db } from "@/lib/db";
 
 const ApiLoginForm = lazy(() =>
   import("@/components/api-login-form").then((comp) => ({
@@ -112,8 +113,7 @@ function App() {
   }
 
   const handleLogout = async () => {
-    const { db } = await import("@/lib/db");
-    await db.deleteCredentials();
+    await db?.deleteCredentials();
     updateIdentifier(undefined);
   };
 

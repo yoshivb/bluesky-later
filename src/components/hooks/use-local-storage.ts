@@ -1,4 +1,4 @@
-import { useSyncExternalStore, useCallback } from "react";
+import { useSyncExternalStore, useCallback, useMemo } from "react";
 import superjson from "superjson";
 
 export const useLocalStorage = <T>(key: string, initialValue?: T) => {
@@ -43,22 +43,10 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
   migrateData();
 
   const getSnapshot = useCallback(() => {
-    const data = localStorage.getItem(key);
-    if (!data) {
-      return initialValue;
-    }
-    try {
-      const parsed = superjson.parse(data) as StorageWrapper;
-      if (parsed.type === "cleared") {
-        return undefined;
-      }
-      return parsed.value;
-    } catch {
-      return initialValue;
-    }
-  }, [key, initialValue]);
+    return localStorage.getItem(key);
+  }, [key]);
 
-  const getServerSnapshot = useCallback(() => initialValue, [initialValue]);
+  const getServerSnapshot = useCallback(() => null, []);
 
   const subscribe = useCallback(
     (onChange: () => void) => {
@@ -84,7 +72,26 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
     [key]
   );
 
-  const data = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const rawData = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot
+  );
+
+  const data = useMemo(() => {
+    if (!rawData) {
+      return initialValue;
+    }
+    try {
+      const parsed = superjson.parse(rawData) as StorageWrapper;
+      if (parsed.type === "cleared") {
+        return undefined;
+      }
+      return parsed.value;
+    } catch {
+      return initialValue;
+    }
+  }, [rawData, initialValue]);
 
   const setData = useCallback(
     (value: T) => {
@@ -110,5 +117,8 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
     );
   }, [key]);
 
-  return [data, setData, clearData] as const;
+  return useMemo(
+    () => [data, setData, clearData] as const,
+    [data, setData, clearData]
+  );
 };

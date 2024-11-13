@@ -2,21 +2,20 @@ import { BskyAgent, RichText } from "@atproto/api";
 import { BlobRefType, PostData } from "@/lib/db/types";
 import { fetchUrlMetadata } from "./metadata";
 import { ApiCredentials } from "./api";
-
-const db = async () => await import("@/lib/db").then((mod) => mod.db);
+import { db } from "@/lib/db";
 
 export const agent = new BskyAgent({
   service: "https://bsky.social",
 });
 
 export async function getStoredCredentials() {
-  const creds = await (await db()).getCredentials();
+  const creds = await db?.getCredentials();
   return creds;
 }
 
 export async function login(identifier: string, password: string) {
   await agent.login({ identifier, password });
-  await (await db()).setCredentials({ identifier, password });
+  await db?.setCredentials({ identifier, password });
 }
 
 export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
@@ -25,10 +24,12 @@ export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
         const { createDatabase } = await import("@/lib/db");
         return createDatabase(workerCredentials);
       })()
-    : await db();
-  const pendingPosts = await workerDb.getPendingPosts();
+    : db;
+  const pendingPosts = await workerDb?.getPendingPosts();
 
-  const creds = await workerDb.getCredentials();
+  if (!pendingPosts) return;
+
+  const creds = await workerDb?.getCredentials();
   if (!creds) return;
 
   try {
@@ -40,10 +41,10 @@ export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
     for (const post of pendingPosts) {
       try {
         await agent.post(post.data);
-        await (await db()).updatePost(post.id!, { status: "published" });
+        await db?.updatePost(post.id!, { status: "published" });
       } catch (error: unknown) {
         console.error("Post creation error:", error);
-        await (await db()).updatePost(post.id!, { status: "published" });
+        await db?.updatePost(post.id!, { status: "published" });
       }
     }
   } catch (error: unknown) {
@@ -64,7 +65,7 @@ export const getPostData = async ({
     url?: string;
   };
 }): Promise<PostData> => {
-  const credentials = await (await db()).getCredentials();
+  const credentials = await db?.getCredentials();
   if (!credentials) throw new Error("No credentials set");
 
   // Create a RichText instance

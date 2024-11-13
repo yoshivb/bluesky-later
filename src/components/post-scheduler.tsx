@@ -5,22 +5,41 @@ import { format, addHours } from "date-fns";
 import { ImageUpload } from "@/components/image-upload";
 import { OfflineInfo } from "@/components/offline-info";
 import { useLocalStorage } from "@/components/hooks/use-local-storage";
-import { BlobRefType } from "@/lib/db/types";
+import { BlobRefType, Post } from "@/lib/db/types";
+import { db } from "@/lib/db";
 
 export function PostScheduler() {
   const [, setLastUpdated] = useLocalStorage("lastUpdated");
+  const [toEditPost, , clearToEditPost] = useLocalStorage<Post>("toEditPost");
+
   const defaultDate = addHours(new Date(), 24);
-  const [content, setContent] = useState("");
+
+  const [content, setContent] = useState(
+    toEditPost ? toEditPost.data.text : ""
+  );
   const [scheduledDate, setScheduledDate] = useState(
-    format(defaultDate, "yyyy-MM-dd")
+    toEditPost?.scheduledFor
+      ? format(toEditPost.scheduledFor, "yyyy-MM-dd")
+      : format(defaultDate, "yyyy-MM-dd")
   );
   const [scheduledTime, setScheduledTime] = useState(
-    format(defaultDate, "HH:mm")
+    toEditPost?.scheduledFor
+      ? format(toEditPost.scheduledFor, "HH:mm")
+      : format(defaultDate, "HH:mm")
   );
   const [image, setImage] = useState<
     | { url: string; type: string; alt: string; blobRef?: BlobRefType }
     | undefined
-  >();
+  >(
+    toEditPost?.data.embed?.images?.[0]
+      ? {
+          ...toEditPost.data.embed.images[0],
+          url: toEditPost.data.embed.images[0].localUrl || "",
+          type: toEditPost.data.embed.images[0].image.mimeType || "",
+          alt: toEditPost.data.embed.images[0].alt || "",
+        }
+      : undefined
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,8 +67,7 @@ export function PostScheduler() {
         url: firstUrl,
         image,
       });
-      const { db } = await import("@/lib/db");
-      await db.createPost({
+      await db?.createPost({
         data: postData,
         scheduledFor,
         status: "pending",
@@ -64,6 +82,7 @@ export function PostScheduler() {
       setImage(undefined);
       setLastUpdated(new Date().toISOString());
       setIsLoading(false);
+      clearToEditPost();
     } catch (error: unknown) {
       console.log(error);
       toast.error("Failed to schedule post");

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { ApiCredentials } from "@/lib/api";
+import { createDatabase } from "@/lib/db";
 
 interface AuthState {
   identifier: string | undefined;
@@ -10,7 +11,8 @@ interface AuthState {
   apiCredentials?: ApiCredentials;
 }
 
-async function checkBlueskyAuth() {
+async function checkBlueskyAuth(apiCredentials?: ApiCredentials) {
+  createDatabase(apiCredentials);
   const { getStoredCredentials } = await import("@/lib/bluesky");
   const creds = await getStoredCredentials();
   return creds?.identifier;
@@ -35,13 +37,13 @@ async function checkApiCredentials() {
 }
 
 export function useAuth() {
-  const [credentials] = useLocalStorage<ApiCredentials>("apiCredentials");
+  const [apiCredentials] = useLocalStorage<ApiCredentials>("apiCredentials");
   const [authState, setAuthState] = useState<AuthState>({
     identifier: undefined,
     isLoading: true,
     hasApiCredentials: true,
     isApiAuthenticated: false,
-    apiCredentials: credentials,
+    apiCredentials,
   });
 
   useEffect(() => {
@@ -49,9 +51,9 @@ export function useAuth() {
       if (import.meta.env.VITE_STORAGE_MODE === "remote") {
         const [identifier, hasServerCreds, isLocallyAuthenticated] =
           await Promise.all([
-            checkBlueskyAuth(),
+            apiCredentials ? checkBlueskyAuth(apiCredentials) : undefined,
             checkApiCredentials(),
-            credentials ? true : false,
+            apiCredentials ? true : false,
           ]);
 
         setAuthState({
@@ -59,10 +61,10 @@ export function useAuth() {
           isLoading: false,
           hasApiCredentials: hasServerCreds,
           isApiAuthenticated: isLocallyAuthenticated,
-          apiCredentials: credentials,
+          apiCredentials,
         });
       } else {
-        const identifier = await checkBlueskyAuth();
+        const identifier = await checkBlueskyAuth(apiCredentials);
         setAuthState({
           identifier,
           isLoading: false,
@@ -73,19 +75,21 @@ export function useAuth() {
     };
 
     checkAuth();
-  }, [credentials]);
+  }, [apiCredentials]);
 
-  const updateIdentifier = (newIdentifier: string | undefined) => {
+  const updateIdentifier = useCallback((newIdentifier: string | undefined) => {
     setAuthState((prev) => ({ ...prev, identifier: newIdentifier }));
-  };
+  }, []);
 
-  const updateApiAuth = (isAuthenticated: boolean) => {
+  const updateApiAuth = useCallback((isAuthenticated: boolean) => {
     setAuthState((prev) => ({ ...prev, isApiAuthenticated: isAuthenticated }));
-  };
+  }, []);
 
-  return {
-    ...authState,
-    updateIdentifier,
-    updateApiAuth,
-  };
+  return useMemo(() => {
+    return {
+      ...authState,
+      updateIdentifier,
+      updateApiAuth,
+    };
+  }, [authState, updateIdentifier, updateApiAuth]);
 }

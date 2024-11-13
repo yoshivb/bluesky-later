@@ -11,21 +11,22 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect, useCallback } from "react";
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { Post } from "@/lib/db/types";
-
-const db = async () => await import("@/lib/db").then((mod) => mod.db);
+import { db } from "@/lib/db";
 
 export function ScheduledPosts() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [lastUpdated, setLastUpdated] = useLocalStorage("lastUpdated");
 
   const fetchPosts = useCallback(async () => {
-    const fetchedPosts = await (await db()).getAllPosts();
+    const fetchedPosts = await db?.getAllPosts();
     setPosts(
-      fetchedPosts.sort(
-        (a, b) =>
-          new Date(b.scheduledFor).getTime() -
-          new Date(a.scheduledFor).getTime()
-      )
+      fetchedPosts
+        ? fetchedPosts.sort(
+            (a, b) =>
+              new Date(b.scheduledFor).getTime() -
+              new Date(a.scheduledFor).getTime()
+          )
+        : []
     );
   }, []);
 
@@ -37,9 +38,8 @@ export function ScheduledPosts() {
 
   const clearScheduledPosts = useCallback(async () => {
     if (window.confirm("Are you sure you want to clear all scheduled posts?")) {
-      const _db = await db();
       await Promise.all(
-        posts.map((post) => post.id && _db.deletePost(post.id))
+        posts.map((post) => post.id && db?.deletePost(post.id))
       );
       await fetchPosts();
       setLastUpdated(new Date().toISOString());
@@ -49,8 +49,7 @@ export function ScheduledPosts() {
   const deletePost = useCallback(
     async (id: number) => {
       if (window.confirm("Are you sure you want to delete this post?")) {
-        const _db = await db();
-        await _db.deletePost(id);
+        await db?.deletePost(id);
         await fetchPosts();
         setLastUpdated(new Date().toISOString());
       }
