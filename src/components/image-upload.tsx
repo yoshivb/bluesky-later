@@ -43,6 +43,8 @@ export function ImageUpload({
   useEffect(() => {
     if (!selectedImage) {
       setAltText("");
+    } else {
+      setAltText(selectedImage.alt);
     }
   }, [selectedImage]);
 
@@ -182,8 +184,9 @@ export function ImageUpload({
                   e as unknown as React.ChangeEvent<HTMLInputElement>
                 )
               }
-              placeholder="Add alt text for accessibility"
+              placeholder="Add alt text for accessibility. You can also click the AI button to generate alt text."
               className="mt-2 w-full p-2 border disabled:opacity-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={5}
             />
 
             <Tooltip>
