@@ -45,10 +45,11 @@ export function ScheduledPosts() {
       await Promise.all(
         posts.map((post) => post.id && db()?.deletePost(post.id))
       );
+      clearToEditPost();
       await fetchPosts();
       setLastUpdated(new Date().toISOString());
     }
-  }, [fetchPosts, posts, setLastUpdated]);
+  }, [fetchPosts, posts, setLastUpdated, clearToEditPost]);
 
   const deletePost = useCallback(
     async (id: number) => {
