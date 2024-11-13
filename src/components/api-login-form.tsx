@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { User, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { useLocalStorage } from "./hooks/use-local-storage";
+import { ApiCredentials } from "@/lib/api";
 
 export function ApiLoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [, setApiCredentials] =
+    useLocalStorage<ApiCredentials>("apiCredentials");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +32,7 @@ export function ApiLoginForm({ onSuccess }: { onSuccess: () => void }) {
       }
 
       // Save credentials and continue
-      localStorage.setItem(
-        "apiCredentials",
-        JSON.stringify({ username, password })
-      );
+      setApiCredentials({ username, password });
 
       toast.success("API login successful!");
       onSuccess();

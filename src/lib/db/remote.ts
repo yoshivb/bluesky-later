@@ -1,15 +1,15 @@
 // src/lib/db/remote.ts
 import { parseISO } from "date-fns";
 import type { DatabaseInterface, Post, Credentials } from "./types";
-import { makeAuthenticatedRequest } from "../api";
+import { ApiCredentials, makeAuthenticatedRequest } from "../api";
 
 export class RemoteDB implements DatabaseInterface {
   private apiUrl: string;
-  private credentials: string | null;
+  private credentials?: ApiCredentials;
 
-  constructor(credentials?: string) {
+  constructor(credentials?: ApiCredentials) {
     this.apiUrl = import.meta.env.VITE_API_URL;
-    this.credentials = credentials ?? localStorage.getItem("apiCredentials");
+    this.credentials = credentials;
   }
 
   private async fetchApi(endpoint: string, options?: RequestInit) {

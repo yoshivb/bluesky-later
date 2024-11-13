@@ -1,6 +1,7 @@
 import { BskyAgent, RichText } from "@atproto/api";
 import { BlobRefType, PostData } from "@/lib/db/types";
 import { fetchUrlMetadata } from "./metadata";
+import { ApiCredentials } from "./api";
 
 const db = async () => await import("@/lib/db").then((mod) => mod.db);
 
@@ -18,7 +19,7 @@ export async function login(identifier: string, password: string) {
   await (await db()).setCredentials({ identifier, password });
 }
 
-export async function checkScheduledPosts(workerCredentials?: string) {
+export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
   const workerDb = workerCredentials
     ? await (async () => {
         const { createDatabase } = await import("@/lib/db");

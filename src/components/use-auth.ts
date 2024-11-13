@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useLocalStorage } from "./hooks/use-local-storage";
+import { ApiCredentials } from "@/lib/api";
 
 interface AuthState {
   identifier: string | undefined;
   isLoading: boolean;
   hasApiCredentials: boolean;
   isApiAuthenticated: boolean;
+  apiCredentials?: ApiCredentials;
 }
 
 async function checkBlueskyAuth() {
@@ -31,16 +34,14 @@ async function checkApiCredentials() {
   }
 }
 
-async function checkLocalApiAuth() {
-  return !!localStorage.getItem("apiCredentials");
-}
-
 export function useAuth() {
+  const [credentials] = useLocalStorage<ApiCredentials>("apiCredentials");
   const [authState, setAuthState] = useState<AuthState>({
     identifier: undefined,
     isLoading: true,
     hasApiCredentials: true,
     isApiAuthenticated: false,
+    apiCredentials: credentials,
   });
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function useAuth() {
           await Promise.all([
             checkBlueskyAuth(),
             checkApiCredentials(),
-            checkLocalApiAuth(),
+            credentials ? true : false,
           ]);
 
         setAuthState({
@@ -58,6 +59,7 @@ export function useAuth() {
           isLoading: false,
           hasApiCredentials: hasServerCreds,
           isApiAuthenticated: isLocallyAuthenticated,
+          apiCredentials: credentials,
         });
       } else {
         const identifier = await checkBlueskyAuth();
@@ -71,7 +73,7 @@ export function useAuth() {
     };
 
     checkAuth();
-  }, []);
+  }, [credentials]);
 
   const updateIdentifier = (newIdentifier: string | undefined) => {
     setAuthState((prev) => ({ ...prev, identifier: newIdentifier }));

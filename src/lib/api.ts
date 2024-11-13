@@ -1,13 +1,16 @@
+export type ApiCredentials = {
+  username: string;
+  password: string;
+};
+
 export async function makeAuthenticatedRequest(
   endpoint: string,
   options: RequestInit = {},
-  providedCredentials?: string
+  providedCredentials?: ApiCredentials
 ) {
-  const credentials =
-    providedCredentials || localStorage.getItem("apiCredentials");
-  if (!credentials) throw new Error("No API credentials found");
+  if (!providedCredentials) throw new Error("No API credentials found");
 
-  const { username, password } = JSON.parse(credentials);
+  const { username, password } = providedCredentials;
   const headers = new Headers(options.headers);
   headers.set("Authorization", "Basic " + btoa(`${username}:${password}`));
 

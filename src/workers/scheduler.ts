@@ -1,6 +1,8 @@
+import { ApiCredentials } from "@/lib/api";
+
 // src/workers/scheduler.ts
 let intervalId: NodeJS.Timeout | null = null;
-let credentials: string | null = null;
+let credentials: ApiCredentials | null = null;
 
 self.onmessage = (e) => {
   if (e.data.type === "start") {

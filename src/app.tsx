@@ -49,6 +49,7 @@ function App() {
     isApiAuthenticated,
     updateIdentifier,
     updateApiAuth,
+    apiCredentials,
   } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -58,10 +59,9 @@ function App() {
 
       if (identifier) {
         worker = new Worker(new URL("./workers/scheduler.ts", import.meta.url));
-        const credentials = localStorage.getItem("apiCredentials");
         worker.postMessage({
           type: "start",
-          credentials,
+          apiCredentials,
         });
       }
 
@@ -72,7 +72,7 @@ function App() {
         }
       };
     }
-  }, [identifier]);
+  }, [identifier, apiCredentials]);
 
   if (isLoading) {
     return <LoadingSpinner />;
