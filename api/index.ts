@@ -138,7 +138,6 @@ async function initDB() {
 }
 
 app.get("/api/posts/pending", async (req, res) => {
-  console.log("Getting pending posts");
   const result = await pool.query(
     "SELECT * FROM posts WHERE status = $1 AND scheduled_for <= NOW()",
     ["pending"]
@@ -147,13 +146,11 @@ app.get("/api/posts/pending", async (req, res) => {
 });
 
 app.get("/api/posts", async (req, res) => {
-  console.log("Getting all posts");
   const result = await pool.query("SELECT * FROM posts");
   res.json(result.rows);
 });
 
 app.post("/api/posts", async (req, res) => {
-  console.log("Creating post");
   const { data, scheduledFor } = req.body;
   const result = await pool.query(
     "INSERT INTO posts (data, scheduled_for, status) VALUES ($1, $2, $3) RETURNING *",
@@ -163,18 +160,22 @@ app.post("/api/posts", async (req, res) => {
 });
 
 app.delete("/api/posts/:id", async (req, res) => {
-  console.log("Deleting post");
   const { id } = req.params;
   await pool.query("DELETE FROM posts WHERE id = $1", [id]);
   res.json({ success: true });
 });
 
+app.patch("/api/posts/:id", async (req, res) => {
+  const { id } = req.params;
+  const { data } = req.body;
+  await pool.query("UPDATE posts SET data = $1 WHERE id = $2", [data, id]);
+  res.json({ success: true });
+});
+
 // Cron endpoint
 app.post("/api/cron/check-posts", async (req, res) => {
-  console.log("Checking posts");
   const authHeader = req.headers.authorization;
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    console.log("cron unauthorized", authHeader);
     return res.status(401).json({ error: "Unauthorized" });
   }
 
@@ -182,8 +183,6 @@ app.post("/api/cron/check-posts", async (req, res) => {
     "SELECT * FROM posts WHERE status = $1 AND scheduled_for <= NOW()",
     ["pending"]
   );
-
-  console.log(posts);
 
   for (const post of posts) {
     try {
@@ -217,13 +216,11 @@ app.post("/api/cron/check-posts", async (req, res) => {
 });
 
 app.get("/api/credentials", async (req, res) => {
-  console.log("Getting credentials");
   const result = await pool.query("SELECT * FROM credentials LIMIT 1");
   res.json(result.rows[0]);
 });
 
 app.post("/api/credentials", async (req, res) => {
-  console.log("Setting credentials");
   const { identifier, password } = req.body;
   await pool.query("DELETE FROM credentials");
   await pool.query(
@@ -234,7 +231,6 @@ app.post("/api/credentials", async (req, res) => {
 });
 
 app.delete("/api/credentials", async (req, res) => {
-  console.log("Deleting credentials");
   await pool.query("DELETE FROM credentials");
   res.json({ success: true });
 });

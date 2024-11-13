@@ -2,29 +2,24 @@ import { BskyAgent, RichText } from "@atproto/api";
 import { BlobRefType, PostData } from "@/lib/db/types";
 import { fetchUrlMetadata } from "./metadata";
 import { ApiCredentials } from "./api";
-import { db } from "@/lib/db";
+import { createDatabase, db } from "@/lib/db";
 
 export const agent = new BskyAgent({
   service: "https://bsky.social",
 });
 
 export async function getStoredCredentials() {
-  const creds = await db?.getCredentials();
+  const creds = await db()?.getCredentials();
   return creds;
 }
 
 export async function login(identifier: string, password: string) {
   await agent.login({ identifier, password });
-  await db?.setCredentials({ identifier, password });
+  await db()?.setCredentials({ identifier, password });
 }
 
 export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
-  const workerDb = workerCredentials
-    ? await (async () => {
-        const { createDatabase } = await import("@/lib/db");
-        return createDatabase(workerCredentials);
-      })()
-    : db;
+  const workerDb = workerCredentials ? createDatabase(workerCredentials) : db();
   const pendingPosts = await workerDb?.getPendingPosts();
 
   if (!pendingPosts) return;
@@ -41,10 +36,10 @@ export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
     for (const post of pendingPosts) {
       try {
         await agent.post(post.data);
-        await db?.updatePost(post.id!, { status: "published" });
+        await db()?.updatePost(post.id!, { status: "published" });
       } catch (error: unknown) {
         console.error("Post creation error:", error);
-        await db?.updatePost(post.id!, { status: "published" });
+        await db()?.updatePost(post.id!, { status: "published" });
       }
     }
   } catch (error: unknown) {
@@ -62,10 +57,11 @@ export const getPostData = async ({
   image?: {
     blobRef?: BlobRefType;
     alt?: string;
-    url?: string;
+    localUrl?: string;
+    dataUrl?: string;
   };
 }): Promise<PostData> => {
-  const credentials = await db?.getCredentials();
+  const credentials = await db()?.getCredentials();
   if (!credentials) throw new Error("No credentials set");
 
   // Create a RichText instance
@@ -92,7 +88,7 @@ export const getPostData = async ({
         {
           alt: image.alt || "",
           image: image.blobRef,
-          localUrl: image.url,
+          localUrl: image.localUrl,
         },
       ],
     };

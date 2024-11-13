@@ -7,6 +7,7 @@ import { OfflineInfo } from "@/components/offline-info";
 import { useLocalStorage } from "@/components/hooks/use-local-storage";
 import { BlobRefType, Post } from "@/lib/db/types";
 import { db } from "@/lib/db";
+import { getPostData } from "@/lib/bluesky";
 
 export function PostScheduler() {
   const [, setLastUpdated] = useLocalStorage("lastUpdated");
@@ -28,13 +29,19 @@ export function PostScheduler() {
       : format(defaultDate, "HH:mm")
   );
   const [image, setImage] = useState<
-    | { url: string; type: string; alt: string; blobRef?: BlobRefType }
+    | {
+        localUrl: string;
+        type: string;
+        alt: string;
+        blobRef?: BlobRefType;
+        dataUrl?: string;
+      }
     | undefined
   >(
     toEditPost?.data.embed?.images?.[0]
       ? {
           ...toEditPost.data.embed.images[0],
-          url: toEditPost.data.embed.images[0].localUrl || "",
+          localUrl: toEditPost.data.embed.images[0].localUrl || "",
           type: toEditPost.data.embed.images[0].image.mimeType || "",
           alt: toEditPost.data.embed.images[0].alt || "",
           blobRef: toEditPost.data.embed.images[0].image,
@@ -51,7 +58,13 @@ export function PostScheduler() {
       if (toEditPost?.data.embed?.images?.[0]) {
         setImage({
           ...toEditPost.data.embed.images[0],
-          url: toEditPost.data.embed.images[0].localUrl || "",
+          localUrl: toEditPost.data.embed.images[0].localUrl || "",
+          dataUrl:
+            toEditPost.data.embed.images[0].dataUrl ||
+            localStorage.getItem(
+              toEditPost.data.embed?.images?.[0]?.localUrl || ""
+            ) ||
+            "",
           type: toEditPost.data.embed.images[0].image.mimeType || "",
           alt: toEditPost.data.embed.images[0].alt || "",
           blobRef: toEditPost.data.embed.images[0].image,
@@ -84,20 +97,19 @@ export function PostScheduler() {
 
     try {
       setIsLoading(true);
-      const { getPostData } = await import("@/lib/bluesky");
       const postData = await getPostData({
         content,
         url: firstUrl,
         image,
       });
       if (toEditPost && toEditPost.id) {
-        await db?.updatePost(toEditPost.id, {
+        await db()?.updatePost(toEditPost.id, {
           data: postData,
           scheduledFor,
           status: "pending",
         });
       } else {
-        await db?.createPost({
+        await db()?.createPost({
           data: postData,
           scheduledFor,
           status: "pending",

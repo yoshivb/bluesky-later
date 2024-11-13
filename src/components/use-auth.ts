@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { ApiCredentials } from "@/lib/api";
-import { createDatabase } from "@/lib/db";
+import { getStoredCredentials } from "@/lib/bluesky";
 
 interface AuthState {
   identifier: string | undefined;
@@ -11,9 +11,7 @@ interface AuthState {
   apiCredentials?: ApiCredentials;
 }
 
-async function checkBlueskyAuth(apiCredentials?: ApiCredentials) {
-  createDatabase(apiCredentials);
-  const { getStoredCredentials } = await import("@/lib/bluesky");
+async function checkBlueskyAuth() {
   const creds = await getStoredCredentials();
   return creds?.identifier;
 }
@@ -51,7 +49,7 @@ export function useAuth() {
       if (import.meta.env.VITE_STORAGE_MODE === "remote") {
         const [identifier, hasServerCreds, isLocallyAuthenticated] =
           await Promise.all([
-            apiCredentials ? checkBlueskyAuth(apiCredentials) : undefined,
+            apiCredentials ? checkBlueskyAuth() : undefined,
             checkApiCredentials(),
             apiCredentials ? true : false,
           ]);
@@ -64,7 +62,7 @@ export function useAuth() {
           apiCredentials,
         });
       } else {
-        const identifier = await checkBlueskyAuth(apiCredentials);
+        const identifier = await checkBlueskyAuth();
         setAuthState({
           identifier,
           isLoading: false,

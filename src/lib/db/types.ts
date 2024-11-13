@@ -27,6 +27,7 @@ export type PostData = {
     images?: Array<{
       alt?: string;
       localUrl?: string;
+      dataUrl?: string;
       image: {
         $type: string;
         ref: {

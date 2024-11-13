@@ -5,18 +5,18 @@ import { ApiCredentials, makeAuthenticatedRequest } from "../api";
 
 export class RemoteDB implements DatabaseInterface {
   private apiUrl: string;
-  private credentials?: ApiCredentials;
+  private apiCredentials?: ApiCredentials;
 
   constructor(credentials?: ApiCredentials) {
     this.apiUrl = import.meta.env.VITE_API_URL;
-    this.credentials = credentials;
+    this.apiCredentials = credentials;
   }
 
   private async fetchApi(endpoint: string, options?: RequestInit) {
     const response = await makeAuthenticatedRequest(
       `${this.apiUrl}/api${endpoint}`,
       options,
-      this.credentials || undefined // You'll need to add this as a class property
+      this.apiCredentials || undefined // You'll need to add this as a class property
     );
     if (!response.ok) {
       throw new Error(`API Error: ${response.statusText}`);

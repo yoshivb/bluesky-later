@@ -8,21 +8,21 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { agent, getStoredCredentials } from "@/lib/bluesky";
+import { uploadImage } from "@/lib/bluesky-image";
+import { generateAltText } from "@/components/generate-alt-text";
 
+type ImageData = {
+  localUrl: string;
+  type: string;
+  alt: string;
+  dataUrl?: string;
+  blobRef?: BlobRefType;
+};
 interface ImageUploadProps {
-  onImageSelect: (imageData: {
-    url: string;
-    type: string;
-    alt: string;
-    blobRef: BlobRefType;
-  }) => void;
+  onImageSelect: (imageData: ImageData) => void;
   onImageClear: () => void;
-  selectedImage?: {
-    url: string;
-    alt: string;
-    type?: string;
-    blobRef?: BlobRefType;
-  };
+  selectedImage?: ImageData;
 }
 
 export function ImageUpload({
@@ -60,14 +60,16 @@ export function ImageUpload({
 
     setIsUploading(true);
     try {
-      const { agent } = await import("@/lib/bluesky");
-      const { getStoredCredentials } = await import("@/lib/bluesky");
-      const { uploadImage } = await import("@/lib/bluesky-image");
       const creds = await getStoredCredentials();
       if (!creds) throw new Error("No credentials set");
       const { url, type, blobRef } = await uploadImage(file, agent, creds);
+
+      // need to store the dataUrl somewhere later
+      const dataUrl = await blobToDataURL(file);
+      localStorage.setItem(url, dataUrl);
+
       onImageSelect({
-        url,
+        localUrl: url,
         type,
         alt: altText,
         blobRef,
@@ -95,7 +97,7 @@ export function ImageUpload({
   const handleGenerateAltText = useCallback(
     async (e: React.MouseEvent) => {
       e.preventDefault();
-      if (!selectedImage?.url) return;
+      if (!selectedImage?.localUrl) return;
 
       try {
         if (!apiKey) {
@@ -105,12 +107,9 @@ export function ImageUpload({
           return;
         }
 
-        const { generateAltText } = await import(
-          "@/components/generate-alt-text"
-        );
         setIsGeneratingAltText(true);
         const generatedAltText = await generateAltText(
-          selectedImage.url,
+          selectedImage.localUrl,
           apiKey,
           systemPrompt || undefined
         );
@@ -159,7 +158,7 @@ export function ImageUpload({
       ) : (
         <div className="relative">
           <img
-            src={selectedImage.url}
+            src={selectedImage.dataUrl || selectedImage.localUrl}
             alt={selectedImage.alt}
             className="w-full h-48 object-cover rounded-lg"
           />
@@ -208,3 +207,12 @@ export function ImageUpload({
     </div>
   );
 }
+
+const blobToDataURL = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};

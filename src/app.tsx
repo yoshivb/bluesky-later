@@ -113,7 +113,7 @@ function App() {
   }
 
   const handleLogout = async () => {
-    await db?.deleteCredentials();
+    await db()?.deleteCredentials();
     updateIdentifier(undefined);
   };
 

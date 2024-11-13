@@ -22,7 +22,7 @@ export function ScheduledPosts() {
     useLocalStorage<Post>("toEditPost");
 
   const fetchPosts = useCallback(async () => {
-    const fetchedPosts = await db?.getAllPosts();
+    const fetchedPosts = await db()?.getAllPosts();
     setPosts(
       fetchedPosts
         ? fetchedPosts.sort(
@@ -43,7 +43,7 @@ export function ScheduledPosts() {
   const clearScheduledPosts = useCallback(async () => {
     if (window.confirm("Are you sure you want to clear all scheduled posts?")) {
       await Promise.all(
-        posts.map((post) => post.id && db?.deletePost(post.id))
+        posts.map((post) => post.id && db()?.deletePost(post.id))
       );
       await fetchPosts();
       setLastUpdated(new Date().toISOString());
@@ -53,7 +53,7 @@ export function ScheduledPosts() {
   const deletePost = useCallback(
     async (id: number) => {
       if (window.confirm("Are you sure you want to delete this post?")) {
-        await db?.deletePost(id);
+        await db()?.deletePost(id);
         await fetchPosts();
         setLastUpdated(new Date().toISOString());
       }
@@ -96,7 +96,11 @@ export function ScheduledPosts() {
           if (!post.data) return null;
           const firstImage = post.data.embed?.images?.[0];
           const websiteImage = post.data.embed?.external?.websiteImageLocalUrl;
-          const imageUrl = firstImage?.localUrl || websiteImage;
+          const imageUrl =
+            firstImage?.dataUrl ||
+            localStorage.getItem(firstImage?.localUrl || "") ||
+            firstImage?.localUrl ||
+            websiteImage;
           const imageAlt = firstImage?.alt;
           return (
             <div

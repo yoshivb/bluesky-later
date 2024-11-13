@@ -1,16 +1,16 @@
 import { useSyncExternalStore, useCallback, useMemo } from "react";
 import superjson from "superjson";
 
-export const useLocalStorage = <T>(key: string, initialValue?: T) => {
-  type StorageWrapper =
-    | {
-        type: "value";
-        value: T;
-      }
-    | {
-        type: "cleared";
-      };
+export type StorageWrapper<T> =
+  | {
+      type: "value";
+      value: T;
+    }
+  | {
+      type: "cleared";
+    };
 
+export const useLocalStorage = <T>(key: string, initialValue?: T) => {
   // One-time migration of legacy data
   const migrateData = useCallback(() => {
     const data = localStorage.getItem(key);
@@ -24,14 +24,14 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
         return;
       }
       // Migrate legacy data to wrapper format
-      const wrapper: StorageWrapper = {
+      const wrapper: StorageWrapper<T> = {
         type: "value",
         value: parsed as T,
       };
       localStorage.setItem(key, superjson.stringify(wrapper));
     } catch {
       // If can't parse as superjson, try as plain value
-      const wrapper: StorageWrapper = {
+      const wrapper: StorageWrapper<T> = {
         type: "value",
         value: data as T,
       };
@@ -83,7 +83,7 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
       return initialValue;
     }
     try {
-      const parsed = superjson.parse(rawData) as StorageWrapper;
+      const parsed = superjson.parse(rawData) as StorageWrapper<T>;
       if (parsed.type === "cleared") {
         return undefined;
       }
@@ -95,7 +95,7 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
 
   const setData = useCallback(
     (value: T) => {
-      const wrapper: StorageWrapper = {
+      const wrapper: StorageWrapper<T> = {
         type: "value",
         value,
       };
@@ -108,7 +108,7 @@ export const useLocalStorage = <T>(key: string, initialValue?: T) => {
   );
 
   const clearData = useCallback(() => {
-    const wrapper: StorageWrapper = {
+    const wrapper: StorageWrapper<T> = {
       type: "cleared",
     };
     localStorage.setItem(key, superjson.stringify(wrapper));
