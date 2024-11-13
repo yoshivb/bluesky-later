@@ -1,7 +1,13 @@
-import React, { useRef, useState } from "react";
-import { ImagePlus, X } from "lucide-react";
+import React, { useCallback, useRef, useState } from "react";
+import { ImagePlus, LoaderIcon, Sparkle, X } from "lucide-react";
 import { toast } from "sonner";
 import { BlobRefType } from "@/lib/db/types";
+import { useLocalStorage } from "@/components/hooks/use-local-storage";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ImageUploadProps {
   onImageSelect: (imageData: {
@@ -25,8 +31,11 @@ export function ImageUpload({
   selectedImage,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingAltText, setIsGeneratingAltText] = useState(false);
   const [altText, setAltText] = useState(selectedImage?.alt || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [apiKey] = useLocalStorage("openaiApiKey", "");
+  const [systemPrompt] = useLocalStorage("systemPrompt", "");
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -77,6 +86,48 @@ export function ImageUpload({
     }
   };
 
+  const handleGenerateAltText = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (!selectedImage?.url) return;
+
+      try {
+        if (!apiKey) {
+          toast.error(
+            "OpenAI API key not configured. Please set it in the settings."
+          );
+          return;
+        }
+
+        const { generateAltText } = await import(
+          "@/components/generate-alt-text"
+        );
+        setIsGeneratingAltText(true);
+        const generatedAltText = await generateAltText(
+          selectedImage.url,
+          apiKey,
+          systemPrompt || undefined
+        );
+        setAltText(generatedAltText);
+
+        if (selectedImage && selectedImage.blobRef) {
+          onImageSelect({
+            ...selectedImage,
+            alt: generatedAltText,
+            type: selectedImage.type || "",
+            blobRef: selectedImage.blobRef,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to generate alt text");
+      } finally {
+        setIsGeneratingAltText(false);
+      }
+    },
+    [selectedImage, apiKey, systemPrompt, onImageSelect]
+  );
+
   return (
     <div className="space-y-4">
       {!selectedImage ? (
@@ -91,6 +142,7 @@ export function ImageUpload({
             </p>
           </div>
           <input
+            disabled={isGeneratingAltText || isUploading}
             ref={fileInputRef}
             type="file"
             accept="image/*"
@@ -106,18 +158,45 @@ export function ImageUpload({
             className="w-full h-48 object-cover rounded-lg"
           />
           <button
+            disabled={isGeneratingAltText || isUploading}
             onClick={onImageClear}
             className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
-          <input
-            type="text"
-            value={altText}
-            onChange={handleAltTextChange}
-            placeholder="Add alt text for accessibility"
-            className="mt-2 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+          <div className="flex flex-row items-center justify-center space-x-2">
+            <textarea
+              disabled={isGeneratingAltText || isUploading}
+              value={altText}
+              onChange={(e) =>
+                handleAltTextChange(
+                  e as unknown as React.ChangeEvent<HTMLInputElement>
+                )
+              }
+              placeholder="Add alt text for accessibility"
+              className="mt-2 w-full p-2 border disabled:opacity-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+
+            <Tooltip>
+              <TooltipTrigger>
+                <button
+                  type="button"
+                  disabled={isGeneratingAltText || isUploading}
+                  onClick={handleGenerateAltText}
+                  className="text-gray-400 hover:text-red-600 transition-colors"
+                >
+                  {isGeneratingAltText ? (
+                    <LoaderIcon className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Sparkle className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Use AI to generate alt text</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       )}
     </div>

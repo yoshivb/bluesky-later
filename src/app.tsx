@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const ApiLoginForm = lazy(() =>
   import("@/components/api-login-form").then((comp) => ({
@@ -117,7 +118,7 @@ function App() {
   };
 
   return (
-    <>
+    <TooltipProvider>
       <div className="min-h-screen bg-muted">
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto py-6 px-4 flex justify-between items-center">
@@ -156,7 +157,7 @@ function App() {
       <Suspense fallback={null}>
         <SettingsForm open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
       </Suspense>
-    </>
+    </TooltipProvider>
   );
 }
 

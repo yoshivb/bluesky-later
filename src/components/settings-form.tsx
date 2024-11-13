@@ -60,6 +60,9 @@ export const SettingsForm = ({
               value={apiKeyInput}
               onChange={(e) => setApiKeyInput(e.target.value)}
             />
+            <p className="text-sm text-muted-foreground">
+              The API key will be saved in your browser's local storage.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="system-prompt">

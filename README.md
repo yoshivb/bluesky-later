@@ -8,6 +8,7 @@ A web application to schedule posts on Bluesky. There are two versions of the ap
 - View scheduled posts.
 - Attach an image to the post.
 - A link in the post will be displayed as a [social card](https://docs.bsky.app/docs/advanced-guides/posts#website-card-embeds).
+- Generate alt text for the image using OpenAI's GPT-4o-mini model. You bring your own API key and system prompt. The key will be saved in your browser's local storage.
 
 ## Browser Mode
 
