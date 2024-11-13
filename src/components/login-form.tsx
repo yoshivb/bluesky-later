@@ -86,7 +86,7 @@ export function LoginForm({
               </a>
               .{" "}
               {import.meta.env.VITE_STORAGE_MODE !== "remote"
-                ? "Your credentials will be saved in this browser's IndexDB."
+                ? "Your credentials will be saved in this browser's IndexedDB."
                 : "Your credentials will be saved in the PostgreSQL database that is used by the API server."}
             </p>
           </div>
