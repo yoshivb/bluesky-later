@@ -14,7 +14,7 @@ A web application to schedule posts on Bluesky. There are two versions of the ap
 
 - Completely free. You can use it now here: [https://app.blueskylater.com](https://app.blueskylater.com)
 - This is the default mode of the app.
-- It uses the browser's IndexedDB to store the credentials and the scheduled posts.
+- It uses the browser's IndexedDB to store the Bluesky credentials (handle and app password) and the scheduled posts.
 - **The scheduled posts will be sent to Bluesky at the scheduled time as long as the browser tab is open and you have internet connection.**
 - You can deploy this app to your own GitHub Pages by simply forking this repository and add these [repository variables](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables):
   - `VITE_IMAGE_PROXY_URL`: `https://allorigins.magic.coolify.nico.fyi/raw?url=`.
@@ -25,10 +25,10 @@ You can set different values for these variables. Read [Website Card Embeds](#we
 ## Self Hosted Mode
 
 - You need a server to host the app.
-- The scheduled posts will be sent to Bluesky at the scheduled time from the API server so you don't need to keep the tab open like in the browser mode.
-- The scheduled posts and credentials are stored in a PostgreSQL database.
-- This mode only supports single user.
+- The scheduled posts will be sent to Bluesky at the scheduled time from the API server **so you don't need to keep the tab open like in the browser mode**.
+- The scheduled posts and Bluesky credentials (handle and app password) are stored in a PostgreSQL database.
 - You can deploy this mode using the [docker-compose.yml file](https://github.com/nicnocquee/bluesky-later/blob/main/docker-compose.yml) provided in the repository and set the environment variables accordingly.
+- After installing it on your server, you will be prompted to set an admin credential (username and password) which will be used to secure access to the API end points. This means that the instance of Bluesky Later will only be accessible to you. This API credential is different from the Bluesky credentials.
 
 ### Environment Variables
 
@@ -47,16 +47,23 @@ The docker-compose.yml file sets default values for these environment variables.
 
 The app has the following components:
 
-- API server: This is the server that handles the scheduled posts and credentials. It connects to the PostgreSQL database and sends the scheduled posts to Bluesky.
-- Frontend: This is the frontend of the app where user can schedule posts and view the scheduled posts. It connects to the API server to fetch the scheduled posts and credentials.
-- Cron: This is a cron job that runs every minute and checks the scheduled posts by sending a request to an end point on the API server.
+- API server (`api` folder): This is the server that handles the scheduled posts and credentials. It connects to the PostgreSQL database and sends the scheduled posts to Bluesky.
+- Frontend (`src` folder): This is the frontend of the app where user can schedule posts and view the scheduled posts. It connects to the API server to fetch the scheduled posts and credentials.
+- Cron (`cron` service in `docker-compose.yml`): This is a cron job that runs every minute and checks the scheduled posts by sending a request to an end point on the API server.
 
 ## Website Card Embeds
 
 Bluesky unfortunately does not automatically generate a social card for the website when a user posts a link to a website via the API. The application needs to generate the social card manually. In this app, it uses the service specified in the `VITE_METADATA_FETCHER_URL` environment variable to fetch the metadata of the website. And for the image of the card, it uses the service specified in the `VITE_IMAGE_PROXY_URL` environment variable to fetch the image to work around the CORS issue. By default, the application uses
 
-- [linkpreview.magic.coolify.nico.fyi](https://linkpreview.magic.coolify.nico.fyi) for the metadata fetcher. The source code of the service is available [here](https://github.com/nicnocquee/link-preview-api).
-- [allorigins.magic.coolify.nico.fyi](https://allorigins.magic.coolify.nico.fyi) for the image proxy. The source code of the service is available [here](https://github.com/nicnocquee/allOrigins).
+- [linkpreview.magic.coolify.nico.fyi](https://linkpreview.magic.coolify.nico.fyi) for the metadata fetcher. The source code of the service is available [here](https://github.com/nicnocquee/link-preview-api). You can host it yourself on your own server.
+- [allorigins.magic.coolify.nico.fyi](https://allorigins.magic.coolify.nico.fyi) for the image proxy. The source code of the service is available [here](https://github.com/nicnocquee/allOrigins). You can host it yourself on your own server.
+
+## Tech Stack
+
+- Frontend: React, Vite, Tailwind CSS, Shadcn UI, TypeScript (`src` folder)
+- Backend: Node.js, Express, TypeScript (`api` folder)
+- Database: PostgreSQL
+- External Services: Metadata fetcher, Image proxy, Open AI
 
 ## License
 
