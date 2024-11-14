@@ -12,7 +12,7 @@ A web application to schedule posts on Bluesky. There are two versions of the ap
 
 ## Browser Mode
 
-- Completely free. You can use it now here: [https://bskylater.nico.fyi](https://bskylater.nico.fyi)
+- Completely free. You can use it now here: [https://app.blueskylater.com](https://app.blueskylater.com)
 - This is the default mode of the app.
 - It uses the browser's IndexedDB to store the credentials and the scheduled posts.
 - **The scheduled posts will be sent to Bluesky at the scheduled time as long as the browser tab is open and you have internet connection.**
