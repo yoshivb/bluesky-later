@@ -23,30 +23,40 @@ export class RemoteDB implements DatabaseInterface {
     return response.json();
   }
 
+  deserializePost = (post: Record<string, unknown>) => {
+    return {
+      ...post,
+      scheduledFor: parseISO(post.scheduled_for as string),
+    };
+  };
+
   async getPendingPosts(): Promise<Post[]> {
-    return this.fetchApi("/posts/pending");
+    return this.fetchApi("/posts/pending").then((posts) =>
+      posts.map(this.deserializePost)
+    );
   }
 
   async getPublishedPosts(): Promise<Post[]> {
-    return this.fetchApi("/posts/published");
+    return this.fetchApi("/posts/published").then((posts) =>
+      posts.map(this.deserializePost)
+    );
   }
 
   async getScheduledPosts(): Promise<Post[]> {
-    return this.fetchApi("/posts/scheduled");
+    return this.fetchApi("/posts/scheduled").then((posts) =>
+      posts.map(this.deserializePost)
+    );
   }
 
   async getPostsToSend(): Promise<Post[]> {
-    return this.fetchApi("/posts/to-send");
+    return this.fetchApi("/posts/to-send").then((posts) =>
+      posts.map(this.deserializePost)
+    );
   }
 
   async getAllPosts(): Promise<Post[]> {
     return this.fetchApi("/posts").then((posts) => {
-      return posts.map((p: Record<string, unknown>) => {
-        return {
-          ...p,
-          scheduledFor: parseISO(p.scheduled_for as string),
-        };
-      });
+      return posts.map(this.deserializePost);
     });
   }
 
