@@ -1,6 +1,5 @@
 import { useEffect, lazy, Suspense, useState } from "react";
 import { PostScheduler } from "@/components/post-scheduler";
-import { ScheduledPosts } from "@/components/scheduled-posts";
 import { Toaster } from "@/components/ui/sonner";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/components/use-auth";
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { db } from "@/lib/db";
+import { PostsTabs } from "./components/stateful-tabs";
 
 const ApiLoginForm = lazy(() =>
   import("@/components/api-login-form").then((comp) => ({
@@ -147,7 +147,7 @@ function App() {
               <PostScheduler />
             </div>
             <div className="w-full">
-              <ScheduledPosts />
+              <PostsTabs />
             </div>
           </div>
         </main>

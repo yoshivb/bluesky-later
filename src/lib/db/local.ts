@@ -41,6 +41,10 @@ export class LocalDB implements DatabaseInterface {
       .toArray();
   }
 
+  async getPublishedPosts(): Promise<Post[]> {
+    return this.db.posts.where("status").equals("published").toArray();
+  }
+
   async getAllPosts(): Promise<Post[]> {
     return this.db.posts.toArray();
   }

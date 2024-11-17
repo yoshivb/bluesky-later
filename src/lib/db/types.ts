@@ -56,6 +56,7 @@ export interface Credentials {
 export interface DatabaseInterface {
   getScheduledPosts(): Promise<Post[]>;
   getPostsToSend(): Promise<Post[]>;
+  getPublishedPosts(): Promise<Post[]>;
   getAllPosts(): Promise<Post[]>;
   createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post>;
   updatePost(id: number, post: Partial<Post>): Promise<void>;

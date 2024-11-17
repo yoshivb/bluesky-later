@@ -15,14 +15,23 @@ import { Post } from "@/lib/db/types";
 import { db } from "@/lib/db";
 import { Button } from "./ui/button";
 
-export function ScheduledPosts() {
+export function PostsList({
+  EmptyComponent,
+  type = "scheduled",
+}: {
+  EmptyComponent?: React.ReactNode;
+  type?: "scheduled" | "published";
+}) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [lastUpdated, setLastUpdated] = useLocalStorage("lastUpdated");
   const [toEditPost, setToEditPost, clearToEditPost] =
     useLocalStorage<Post>("toEditPost");
 
   const fetchPosts = useCallback(async () => {
-    const fetchedPosts = await db()?.getScheduledPosts();
+    const fetchedPosts =
+      type === "scheduled"
+        ? await db()?.getScheduledPosts()
+        : await db()?.getPublishedPosts();
     setPosts(
       fetchedPosts
         ? fetchedPosts.sort(
@@ -32,7 +41,7 @@ export function ScheduledPosts() {
           )
         : []
     );
-  }, []);
+  }, [type]);
 
   useEffect(() => {
     fetchPosts();
@@ -77,8 +86,7 @@ export function ScheduledPosts() {
           </Button>
         </div>
       )}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Scheduled Posts</h2>
+      <div className="flex items-center justify-end mb-6">
         <button
           disabled={!!toEditPost}
           onClick={clearScheduledPosts}
@@ -185,10 +193,34 @@ export function ScheduledPosts() {
             </div>
           );
         })}
-        {posts.length === 0 && (
-          <p className="text-center text-gray-500">No posts scheduled yet</p>
-        )}
+        {posts.length === 0 && EmptyComponent}
       </div>
     </div>
   );
 }
+
+export const NoItemsComponent = ({
+  type,
+}: {
+  type: "scheduled" | "published";
+}) => {
+  return <p className="text-center text-gray-500">No posts {type} yet</p>;
+};
+
+export const ScheduledPosts = () => {
+  return (
+    <PostsList
+      type="scheduled"
+      EmptyComponent={<NoItemsComponent type="scheduled" />}
+    />
+  );
+};
+
+export const PublishedPosts = () => {
+  return (
+    <PostsList
+      type="published"
+      EmptyComponent={<NoItemsComponent type="published" />}
+    />
+  );
+};

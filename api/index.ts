@@ -145,6 +145,29 @@ app.get("/api/posts/pending", async (req, res) => {
   res.json(result.rows);
 });
 
+app.get("/api/posts/scheduled", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM posts WHERE status = $1 AND scheduled_for > NOW()",
+    ["pending"]
+  );
+  res.json(result.rows);
+});
+
+app.get("/api/posts/published", async (req, res) => {
+  const result = await pool.query("SELECT * FROM posts WHERE status = $1", [
+    "published",
+  ]);
+  res.json(result.rows);
+});
+
+app.get("/api/posts/to-send", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM posts WHERE status = $1 AND scheduled_for <= NOW()",
+    ["pending"]
+  );
+  res.json(result.rows);
+});
+
 app.get("/api/posts", async (req, res) => {
   const result = await pool.query("SELECT * FROM posts");
   res.json(result.rows);

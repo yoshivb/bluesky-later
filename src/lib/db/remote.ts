@@ -1,4 +1,3 @@
-// src/lib/db/remote.ts
 import { parseISO } from "date-fns";
 import type { DatabaseInterface, Post, Credentials } from "./types";
 import { ApiCredentials, makeAuthenticatedRequest } from "../api";
@@ -26,6 +25,18 @@ export class RemoteDB implements DatabaseInterface {
 
   async getPendingPosts(): Promise<Post[]> {
     return this.fetchApi("/posts/pending");
+  }
+
+  async getPublishedPosts(): Promise<Post[]> {
+    return this.fetchApi("/posts/published");
+  }
+
+  async getScheduledPosts(): Promise<Post[]> {
+    return this.fetchApi("/posts/scheduled");
+  }
+
+  async getPostsToSend(): Promise<Post[]> {
+    return this.fetchApi("/posts/to-send");
   }
 
   async getAllPosts(): Promise<Post[]> {
