@@ -25,11 +25,19 @@ export class LocalDB implements DatabaseInterface {
     this.db = new BlueSkyDB();
   }
 
-  async getPendingPosts(): Promise<Post[]> {
+  async getPostsToSend(): Promise<Post[]> {
     return this.db.posts
       .where("status")
       .equals("pending")
       .and((post) => new Date(post.scheduledFor) <= new Date())
+      .toArray();
+  }
+
+  async getScheduledPosts(): Promise<Post[]> {
+    return this.db.posts
+      .where("status")
+      .equals("pending")
+      .and((post) => new Date(post.scheduledFor) > new Date())
       .toArray();
   }
 

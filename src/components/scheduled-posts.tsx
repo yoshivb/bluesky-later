@@ -22,7 +22,7 @@ export function ScheduledPosts() {
     useLocalStorage<Post>("toEditPost");
 
   const fetchPosts = useCallback(async () => {
-    const fetchedPosts = await db()?.getAllPosts();
+    const fetchedPosts = await db()?.getScheduledPosts();
     setPosts(
       fetchedPosts
         ? fetchedPosts.sort(

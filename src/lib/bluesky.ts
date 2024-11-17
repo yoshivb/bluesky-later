@@ -20,7 +20,7 @@ export async function login(identifier: string, password: string) {
 
 export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
   const workerDb = workerCredentials ? createDatabase(workerCredentials) : db();
-  const pendingPosts = await workerDb?.getPendingPosts();
+  const pendingPosts = await workerDb?.getPostsToSend();
 
   if (!pendingPosts) return;
 
