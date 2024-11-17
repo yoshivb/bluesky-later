@@ -51,7 +51,9 @@ export const getPostData = async ({
   content,
   url,
   image,
+  scheduledAt,
 }: {
+  scheduledAt: Date;
   content: string;
   url?: string;
   image?: {
@@ -72,7 +74,7 @@ export const getPostData = async ({
   const postData: PostData = {
     text: richText.text,
     facets: richText.facets,
-    createdAt: new Date().toISOString(),
+    createdAt: scheduledAt.toISOString(),
   };
 
   if (url) {

@@ -100,6 +100,7 @@ export function PostScheduler() {
       try {
         setIsLoading(true);
         const postData = await getPostData({
+          scheduledAt: scheduledFor,
           content,
           url: firstUrl,
           image,
