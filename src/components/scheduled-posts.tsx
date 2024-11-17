@@ -67,9 +67,8 @@ export function ScheduledPosts() {
   return (
     <div className={cn("mx-auto p-6 relative")}>
       {toEditPost && (
-        <div className="absolute inset-0 p-2 bg-white bg-opacity-60 flex flex-col items-center justify-center">
+        <div className="absolute inset-0 p-2 py-8 bg-white bg-opacity-60 backdrop-filter backdrop-blur-sm flex flex-col items-center justify-start">
           <Button
-            variant={"outline"}
             onClick={() => {
               clearToEditPost();
             }}
