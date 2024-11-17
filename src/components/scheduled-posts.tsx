@@ -27,8 +27,8 @@ export function ScheduledPosts() {
       fetchedPosts
         ? fetchedPosts.sort(
             (a, b) =>
-              new Date(b.scheduledFor).getTime() -
-              new Date(a.scheduledFor).getTime()
+              new Date(a.scheduledFor).getTime() -
+              new Date(b.scheduledFor).getTime()
           )
         : []
     );
