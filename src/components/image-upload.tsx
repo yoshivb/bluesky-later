@@ -10,16 +10,13 @@ import {
 } from "@/components/ui/tooltip";
 import { agent, getStoredCredentials } from "@/lib/bluesky";
 import { uploadImage } from "@/lib/bluesky-image";
-import {
-  base64FromRemoteUrl,
-  generateAltText,
-} from "@/components/generate-alt-text";
+import { generateAltText } from "@/components/generate-alt-text";
+import { ImageStore } from "./image-store";
 
-type ImageData = {
-  localUrl: string;
+export type ImageData = {
+  localImageId?: number;
   type: string;
   alt: string;
-  dataUrl?: string;
   blobRef?: BlobRefType;
 };
 interface ImageUploadProps {
@@ -39,6 +36,7 @@ export function ImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [apiKey] = useLocalStorage("openaiApiKey", "");
   const [systemPrompt] = useLocalStorage("systemPrompt", "");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedImage) {
@@ -67,14 +65,15 @@ export function ImageUpload({
     try {
       const creds = await getStoredCredentials();
       if (!creds) throw new Error("No credentials set");
-      const { url, type, blobRef } = await uploadImage(file, agent, creds);
+      const { type, blobRef } = await uploadImage(file, agent, creds);
 
-      // need to store the dataUrl somewhere later
-      const dataUrl = await blobToDataURL(file);
-      localStorage.setItem(url, dataUrl);
+      const imageStore = new ImageStore();
+      const imageId = await imageStore.saveImage(file);
+      const previewImage = await imageStore.getImageAsDataUrl(imageId);
+      setPreviewImage(previewImage);
 
       onImageSelect({
-        localUrl: url,
+        localImageId: imageId,
         type,
         alt: altText,
         blobRef,
@@ -102,7 +101,7 @@ export function ImageUpload({
   const handleGenerateAltText = useCallback(
     async (e: React.MouseEvent) => {
       e.preventDefault();
-      if (!selectedImage?.localUrl) return;
+      if (!selectedImage?.localImageId) return;
 
       try {
         if (!apiKey) {
@@ -113,21 +112,26 @@ export function ImageUpload({
         }
 
         setIsGeneratingAltText(true);
-        const generatedAltText = await generateAltText(
-          localStorage.getItem(selectedImage.localUrl) ||
-            (await base64FromRemoteUrl(selectedImage.localUrl)),
-          apiKey,
-          systemPrompt || undefined
+        const imageStore = new ImageStore();
+        const imageBase64 = await imageStore.getImageAsBase64(
+          selectedImage.localImageId
         );
-        setAltText(generatedAltText);
+        if (imageBase64) {
+          const generatedAltText = await generateAltText(
+            imageBase64,
+            apiKey,
+            systemPrompt || undefined
+          );
+          setAltText(generatedAltText);
 
-        if (selectedImage && selectedImage.blobRef) {
-          onImageSelect({
-            ...selectedImage,
-            alt: generatedAltText,
-            type: selectedImage.type || "",
-            blobRef: selectedImage.blobRef,
-          });
+          if (selectedImage && selectedImage.blobRef) {
+            onImageSelect({
+              ...selectedImage,
+              alt: generatedAltText,
+              type: selectedImage.type || "",
+              blobRef: selectedImage.blobRef,
+            });
+          }
         }
       } catch (error) {
         console.error(error);
@@ -164,7 +168,7 @@ export function ImageUpload({
       ) : (
         <div className="relative">
           <img
-            src={selectedImage.dataUrl || selectedImage.localUrl}
+            src={previewImage || ""}
             alt={selectedImage.alt}
             className="w-full h-48 object-cover rounded-lg"
           />
@@ -214,12 +218,3 @@ export function ImageUpload({
     </div>
   );
 }
-
-const blobToDataURL = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};

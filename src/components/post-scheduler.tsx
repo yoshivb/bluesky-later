@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Calendar, Clock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, addHours } from "date-fns";
-import { ImageUpload } from "@/components/image-upload";
+import { ImageData, ImageUpload } from "@/components/image-upload";
 import { OfflineInfo } from "@/components/offline-info";
 import { useLocalStorage } from "@/components/hooks/use-local-storage";
-import { BlobRefType, Post } from "@/lib/db/types";
+import { Post } from "@/lib/db/types";
 import { db } from "@/lib/db";
 import { getPostData } from "@/lib/bluesky";
 
@@ -28,23 +28,12 @@ export function PostScheduler() {
       ? format(toEditPost.scheduledFor, "HH:mm")
       : format(defaultDate, "HH:mm")
   );
-  const [image, setImage] = useState<
-    | {
-        localUrl: string;
-        type: string;
-        alt: string;
-        blobRef?: BlobRefType;
-        dataUrl?: string;
-      }
-    | undefined
-  >(
+  const [image, setImage] = useState<ImageData | undefined>(
     toEditPost?.data.embed?.images?.[0]
       ? {
           ...toEditPost.data.embed.images[0],
-          localUrl: toEditPost.data.embed.images[0].localUrl || "",
           type: toEditPost.data.embed.images[0].image.mimeType || "",
           alt: toEditPost.data.embed.images[0].alt || "",
-          blobRef: toEditPost.data.embed.images[0].image,
         }
       : undefined
   );
@@ -58,16 +47,8 @@ export function PostScheduler() {
       if (toEditPost?.data.embed?.images?.[0]) {
         setImage({
           ...toEditPost.data.embed.images[0],
-          localUrl: toEditPost.data.embed.images[0].localUrl || "",
-          dataUrl:
-            toEditPost.data.embed.images[0].dataUrl ||
-            localStorage.getItem(
-              toEditPost.data.embed?.images?.[0]?.localUrl || ""
-            ) ||
-            "",
           type: toEditPost.data.embed.images[0].image.mimeType || "",
           alt: toEditPost.data.embed.images[0].alt || "",
-          blobRef: toEditPost.data.embed.images[0].image,
         });
       }
     } else {

@@ -25,7 +25,6 @@ export async function uploadImage(
       size: response.data.blob.size,
     },
     type: file.type,
-    url: URL.createObjectURL(file), // Add this for local preview
   };
 }
 

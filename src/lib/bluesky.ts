@@ -59,8 +59,7 @@ export const getPostData = async ({
   image?: {
     blobRef?: BlobRefType;
     alt?: string;
-    localUrl?: string;
-    dataUrl?: string;
+    localImageId?: number;
   };
 }): Promise<PostData> => {
   const credentials = await db()?.getCredentials();
@@ -90,7 +89,7 @@ export const getPostData = async ({
         {
           alt: image.alt || "",
           image: image.blobRef,
-          localUrl: image.localUrl,
+          localImageId: image.localImageId,
         },
       ],
     };

@@ -9,11 +9,12 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { Post } from "@/lib/db/types";
 import { db } from "@/lib/db";
 import { Button } from "./ui/button";
+import { ImageStore } from "./image-store";
 
 export function PostsList({
   EmptyComponent,
@@ -102,14 +103,11 @@ export function PostsList({
       <div className="space-y-4">
         {posts.map((post) => {
           if (!post.data) return null;
-          const firstImage = post.data.embed?.images?.[0];
-          const websiteImage = post.data.embed?.external?.websiteImageLocalUrl;
-          const imageUrl =
-            firstImage?.dataUrl ||
-            localStorage.getItem(firstImage?.localUrl || "") ||
-            firstImage?.localUrl ||
-            websiteImage;
-          const imageAlt = firstImage?.alt;
+          const firstImage = post.data.embed?.images?.[0]?.localImageId;
+          const websiteImage = post.data.embed?.external?.websiteImageLocalId;
+          const imageId = firstImage || websiteImage;
+          const imageAlt = post.data.embed?.images?.[0]?.alt;
+
           return (
             <div
               key={post.id}
@@ -118,13 +116,17 @@ export function PostsList({
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <p className="text-gray-900 mb-2">{post.data.text}</p>
-                  {imageUrl && (
+
+                  {imageId && (
                     <div className="mb-2 space-y-2">
-                      <img
-                        src={imageUrl}
-                        alt={imageAlt}
-                        className="w-32 h-32 object-cover rounded-lg"
-                      />
+                      <Suspense fallback="...">
+                        <PostImage
+                          imageId={imageId}
+                          alt={imageAlt}
+                          className="w-32 h-32 object-cover rounded-lg"
+                          key={imageId}
+                        />
+                      </Suspense>
                       {imageAlt ? (
                         <p className="text-sm text-gray-400">
                           <strong>Alt text:</strong> {imageAlt}
@@ -145,7 +147,7 @@ export function PostsList({
                         <span>Has image</span>
                       </>
                     )}
-                    {websiteImage && imageUrl && (
+                    {websiteImage && imageId && (
                       <>
                         <span className="mx-1">•</span>
                         <Link className="h-4 w-4" />
@@ -198,6 +200,32 @@ export function PostsList({
     </div>
   );
 }
+
+const PostImage = ({
+  imageId,
+  alt,
+  className,
+}: {
+  imageId: number;
+  alt?: string;
+  className?: string;
+}) => {
+  const [image, setImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchImage = async () => {
+      const imageStore = new ImageStore();
+      const imageData = await imageStore.getImageAsDataUrl(imageId);
+      setImage(imageData);
+    };
+
+    fetchImage();
+  }, [imageId]);
+
+  if (!image) return null;
+
+  return <img src={image} alt={alt} className={className} />;
+};
 
 export const NoItemsComponent = ({
   type,

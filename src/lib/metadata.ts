@@ -1,6 +1,7 @@
 import { BskyAgent } from "@atproto/api";
 import { uploadImage } from "./bluesky-image";
 import { BlobRefType, Credentials } from "./db/types";
+import { ImageStore } from "@/components/image-store";
 
 interface WebsiteData {
   lang: string;
@@ -32,7 +33,7 @@ export async function fetchUrlMetadata(
     const { title, description, image } = metadataFetcherResponseJson;
 
     let websiteImage: BlobRefType | undefined = undefined;
-    let websiteImageLocalUrl: string | undefined = undefined;
+    let websiteImageLocalId: number | undefined = undefined;
     try {
       if (image) {
         const proxyUrl = `${import.meta.env.VITE_IMAGE_PROXY_URL}${image}`;
@@ -46,7 +47,9 @@ export async function fetchUrlMetadata(
         });
         const uploadResult = await uploadImage(file, agent, creds);
         websiteImage = uploadResult.blobRef;
-        websiteImageLocalUrl = URL.createObjectURL(file);
+
+        const imageStore = new ImageStore();
+        websiteImageLocalId = await imageStore.saveImage(file);
       }
     } catch (error) {
       console.error("Failed to fetch image:", error);
@@ -57,7 +60,7 @@ export async function fetchUrlMetadata(
       title: title || url,
       description: description || "",
       thumb: websiteImage,
-      websiteImageLocalUrl,
+      websiteImageLocalId,
     };
   } catch (error) {
     console.error("Error fetching metadata:", error);
@@ -66,7 +69,7 @@ export async function fetchUrlMetadata(
       title: url,
       description: "",
       thumb: undefined,
-      websiteImageLocalUrl: undefined,
+      websiteImageLocalId: undefined,
     };
   }
 }

@@ -26,8 +26,7 @@ export type PostData = {
     $type: string;
     images?: Array<{
       alt?: string;
-      localUrl?: string;
-      dataUrl?: string;
+      localImageId?: number;
       image: {
         $type: string;
         ref: {
@@ -42,7 +41,7 @@ export type PostData = {
       title: string;
       description: string;
       thumb?: BlobRefType;
-      websiteImageLocalUrl?: string;
+      websiteImageLocalId?: number;
     };
   };
 };
