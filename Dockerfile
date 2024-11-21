@@ -1,9 +1,10 @@
-# Dockerfile
-FROM node:20 as builder
+FROM node:20 AS builder
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+ENV ROLLUP_SKIP_NODE_RESOLVE=true
+RUN npm ci --legacy-peer-deps --platform=linux --arch=x64 \
+    && npm rebuild @rollup/rollup-linux-x64-gnu
 COPY . .
 ARG VITE_STORAGE_MODE=remote
 ARG VITE_API_URL=http://api:3000
