@@ -3,7 +3,7 @@ FROM node:18-alpine as builder
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci --legacy-peer-deps
 COPY . .
 ARG VITE_STORAGE_MODE=remote
 ARG VITE_API_URL=http://api:3000
