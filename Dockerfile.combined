@@ -1,0 +1,137 @@
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app
+COPY package*.json ./
+ENV ROLLUP_SKIP_NODE_RESOLVE=true
+RUN npm ci --legacy-peer-deps --platform=linux --arch=x64 \
+    && npm rebuild @rollup/rollup-linux-x64-gnu
+COPY . .
+ARG VITE_STORAGE_MODE=remote
+ARG VITE_API_URL=http://localhost:3000
+ARG VITE_METADATA_FETCHER_URL=https://linkpreview.magic.coolify.nico.fyi/api/v1/preview?url=
+ARG VITE_IMAGE_PROXY_URL=https://allorigins.magic.coolify.nico.fyi/raw?url=
+RUN VITE_STORAGE_MODE=$VITE_STORAGE_MODE \
+    VITE_API_URL=$VITE_API_URL \
+    VITE_METADATA_FETCHER_URL=$VITE_METADATA_FETCHER_URL \
+    VITE_IMAGE_PROXY_URL=$VITE_IMAGE_PROXY_URL \
+    npm run build
+
+# Stage 2: Build API
+FROM --platform=$BUILDPLATFORM node:20-alpine AS api-builder
+WORKDIR /app
+COPY api/package*.json ./
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
+# Install dependencies without bcrypt
+RUN npm ci --legacy-peer-deps --production --ignore-scripts
+
+# Install and build bcrypt separately
+RUN npm install bcrypt --build-from-source
+
+COPY api .
+RUN npm run build
+
+# Stage 3: Final image
+FROM node:20-alpine
+
+# Install only the necessary packages
+RUN apk add --no-cache \
+    nginx \
+    curl \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/cache/apk/*
+
+# Create necessary directories and set permissions
+RUN mkdir -p /var/cache/nginx \
+    /var/run/nginx \
+    /usr/share/nginx/html \
+    && chown -R nginx:nginx /var/cache/nginx \
+    /var/run/nginx \
+    /usr/share/nginx/html
+
+# Create a basic nginx configuration
+RUN echo 'worker_processes auto;' > /etc/nginx/nginx.conf && \
+    echo 'error_log /dev/stderr;' >> /etc/nginx/nginx.conf && \
+    echo 'pid /tmp/nginx.pid;' >> /etc/nginx/nginx.conf && \
+    echo 'events {' >> /etc/nginx/nginx.conf && \
+    echo '    worker_connections 1024;' >> /etc/nginx/nginx.conf && \
+    echo '}' >> /etc/nginx/nginx.conf && \
+    echo 'http {' >> /etc/nginx/nginx.conf && \
+    echo '    include /etc/nginx/mime.types;' >> /etc/nginx/nginx.conf && \
+    echo '    default_type application/octet-stream;' >> /etc/nginx/nginx.conf && \
+    echo '    access_log /dev/stdout combined;' >> /etc/nginx/nginx.conf && \
+    echo '    sendfile on;' >> /etc/nginx/nginx.conf && \
+    echo '    tcp_nopush on;' >> /etc/nginx/nginx.conf && \
+    echo '    keepalive_timeout 65;' >> /etc/nginx/nginx.conf && \
+    echo '    server {' >> /etc/nginx/nginx.conf && \
+    echo '        listen 8080;' >> /etc/nginx/nginx.conf && \
+    echo '        root /usr/share/nginx/html;' >> /etc/nginx/nginx.conf && \
+    echo '        location / {' >> /etc/nginx/nginx.conf && \
+    echo '            try_files $uri $uri/ /index.html;' >> /etc/nginx/nginx.conf && \
+    echo '        }' >> /etc/nginx/nginx.conf && \
+    echo '    }' >> /etc/nginx/nginx.conf && \
+    echo '}' >> /etc/nginx/nginx.conf
+
+# Copy built frontend from frontend-builder
+COPY --from=frontend-builder /app/dist /usr/share/nginx/html/
+
+# Set up API
+WORKDIR /app/api
+COPY --from=api-builder /app/dist ./dist
+COPY --from=api-builder /app/node_modules ./node_modules
+COPY --from=api-builder /app/package.json ./package.json
+
+# Rebuild bcrypt in the final stage
+RUN npm rebuild bcrypt --build-from-source
+
+# Set permissions
+RUN chown -R nginx:nginx /usr/share/nginx/html /app/api
+
+# Set environment variables
+ENV DATABASE_URL=postgres://bluesky:bluesky@postgres:5432/bluesky_scheduler \
+    NODE_ENV=production
+
+# Create start script
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'set -e' >> /start.sh && \
+    echo 'echo "Waiting for PostgreSQL to start..."' >> /start.sh && \
+    echo 'while ! nc -z postgres 5432; do' >> /start.sh && \
+    echo '  sleep 1' >> /start.sh && \
+    echo 'done' >> /start.sh && \
+    echo 'echo "PostgreSQL started"' >> /start.sh && \
+    echo 'cd /app/api' >> /start.sh && \
+    echo 'node dist/index.js &' >> /start.sh && \
+    echo 'API_PID=$!' >> /start.sh && \
+    echo 'echo "Starting nginx..."' >> /start.sh && \
+    echo 'nginx -g "daemon off;" &' >> /start.sh && \
+    echo 'NGINX_PID=$!' >> /start.sh && \
+    echo 'echo "Waiting for services to start..."' >> /start.sh && \
+    echo 'sleep 5' >> /start.sh && \
+    echo 'while true; do' >> /start.sh && \
+    echo '  if ! kill -0 $API_PID 2>/dev/null; then' >> /start.sh && \
+    echo '    echo "API process has crashed"' >> /start.sh && \
+    echo '    exit 1' >> /start.sh && \
+    echo '  fi' >> /start.sh && \
+    echo '  if ! kill -0 $NGINX_PID 2>/dev/null; then' >> /start.sh && \
+    echo '    echo "Nginx process has crashed"' >> /start.sh && \
+    echo '    exit 1' >> /start.sh && \
+    echo '  fi' >> /start.sh && \
+    echo '  curl -s -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/check-posts || true' >> /start.sh && \
+    echo '  sleep 60' >> /start.sh && \
+    echo 'done' >> /start.sh && \
+    chmod +x /start.sh && \
+    chown nginx:nginx /start.sh
+
+# Create required directories for nginx
+RUN mkdir -p /tmp/nginx && \
+    chown -R nginx:nginx /tmp/nginx
+
+EXPOSE 8080 3000
+
+USER nginx
+
+CMD ["/start.sh"]

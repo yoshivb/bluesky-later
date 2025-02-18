@@ -1,3 +1,5 @@
+# Use this docker-compose.yml to run via Coolify
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -35,6 +37,7 @@ services:
   frontend:
     build:
       context: .
+      dockerfile: Dockerfile.frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-http://api:3000}
         VITE_STORAGE_MODE: remote

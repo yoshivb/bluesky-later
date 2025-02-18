@@ -112,6 +112,10 @@ app.use(authenticateRequest);
 
 // Initialize database
 async function initDB() {
+  if (process.env.DEBUG && process.env.DEBUG === "true") {
+    console.log(`DATABASE_URL=${process.env.DATABASE_URL}`);
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS posts (
       id SERIAL PRIMARY KEY,

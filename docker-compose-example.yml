@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-blueskylater}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blueskylater}
+      POSTGRES_DB: ${POSTGRES_DB:-blueskylater_scheduler}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-blueskylater} -d ${POSTGRES_DB:-blueskylater_scheduler}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  app:
+    image: nicnocquee/bluesky-later:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://blueskylater:blueskylater@postgres:5432/blueskylater_scheduler}
+      CRON_SECRET: ${CRON_SECRET:-your-secret-here}
+      DEBUG: "true"
+    ports:
+      - "80:8080"
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
