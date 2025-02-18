@@ -94,3 +94,7 @@ MIT
 ## Author
 
 [@nico.fyi](https://bsky.app/profile/nico.fyi)
+
+## Links
+
+- [How to deploy Bluesky Later on your own server using Coolify](https://nico.fyi/blog/how-to-deploy-blueskylater-using-coolify)
