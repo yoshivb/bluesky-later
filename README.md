@@ -98,3 +98,4 @@ MIT
 ## Links
 
 - [How to deploy Bluesky Later on your own server using Coolify](https://nico.fyi/blog/how-to-deploy-blueskylater-using-coolify)
+- [How to deploy Bluesky Later to DigitalOcean Droplet](https://nico.fyi/blog/how-to-deploy-blueskylater-to-digitalocean-droplet)
