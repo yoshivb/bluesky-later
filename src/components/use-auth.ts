@@ -79,15 +79,25 @@ export function useAuth() {
     setAuthState((prev) => ({ ...prev, identifier: newIdentifier }));
   }, []);
 
-  const updateApiAuth = useCallback((isAuthenticated: boolean) => {
+  const updateIsApiAuthenticated = useCallback((isAuthenticated: boolean) => {
     setAuthState((prev) => ({ ...prev, isApiAuthenticated: isAuthenticated }));
+  }, []);
+
+  const updateHasApiCreds = useCallback((isSetup: boolean) => {
+    setAuthState((prev) => ({ ...prev, hasApiCredentials: isSetup }));
   }, []);
 
   return useMemo(() => {
     return {
       ...authState,
       updateIdentifier,
-      updateApiAuth,
+      updateIsApiAuthenticated,
+      updateHasApiCreds,
     };
-  }, [authState, updateIdentifier, updateApiAuth]);
+  }, [
+    authState,
+    updateIdentifier,
+    updateIsApiAuthenticated,
+    updateHasApiCreds,
+  ]);
 }

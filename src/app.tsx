@@ -49,7 +49,8 @@ function App() {
     hasApiCredentials,
     isApiAuthenticated,
     updateIdentifier,
-    updateApiAuth,
+    updateHasApiCreds,
+    updateIsApiAuthenticated,
     apiCredentials,
   } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -83,7 +84,7 @@ function App() {
     return (
       <div className="relative">
         <Suspense fallback={<LoadingSpinner />}>
-          <SetupForm onSuccess={() => updateApiAuth(true)} />
+          <SetupForm onSuccess={() => updateHasApiCreds(true)} />
         </Suspense>
         <Toaster />
       </div>
@@ -94,7 +95,7 @@ function App() {
     return (
       <div className="relative">
         <Suspense fallback={<LoadingSpinner />}>
-          <ApiLoginForm onSuccess={() => updateApiAuth(true)} />
+          <ApiLoginForm onSuccess={() => updateIsApiAuthenticated(true)} />
         </Suspense>
         <Toaster />
       </div>

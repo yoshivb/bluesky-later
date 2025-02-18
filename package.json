@@ -8,8 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "dev:remote": "docker-compose -f docker-compose.dev.yml up -d postgres cron && concurrently \"VITE_STORAGE_MODE=remote vite\" \"cd api && npm run dev\"",
-    "dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "dev:remote": "docker-compose -f docker-compose.dev.yml up --build -d postgres cron && sleep 5 && concurrently \"VITE_STORAGE_MODE=remote vite\" \"cd api && npm run dev\"",
+    "dev:down": "docker-compose -f docker-compose.dev.yml down -v",
     "prod": "docker-compose up --build",
     "prod:down": "docker-compose down"
   },
