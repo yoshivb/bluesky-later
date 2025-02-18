@@ -7,7 +7,7 @@ RUN npm ci --legacy-peer-deps --platform=linux --arch=x64 \
     && npm rebuild @rollup/rollup-linux-x64-gnu
 COPY . .
 ARG VITE_STORAGE_MODE=remote
-ARG VITE_API_URL=http://localhost:3000
+ARG VITE_API_URL=
 ARG VITE_METADATA_FETCHER_URL=https://linkpreview.magic.coolify.nico.fyi/api/v1/preview?url=
 ARG VITE_IMAGE_PROXY_URL=https://allorigins.magic.coolify.nico.fyi/raw?url=
 RUN VITE_STORAGE_MODE=$VITE_STORAGE_MODE \
@@ -70,11 +70,22 @@ RUN echo 'worker_processes auto;' > /etc/nginx/nginx.conf && \
     echo '    server {' >> /etc/nginx/nginx.conf && \
     echo '        listen 8080;' >> /etc/nginx/nginx.conf && \
     echo '        root /usr/share/nginx/html;' >> /etc/nginx/nginx.conf && \
+    echo '        location /api/ {' >> /etc/nginx/nginx.conf && \
+    echo '            proxy_pass http://localhost:3000;' >> /etc/nginx/nginx.conf && \
+    echo '            proxy_http_version 1.1;' >> /etc/nginx/nginx.conf && \
+    echo '            proxy_set_header Upgrade $http_upgrade;' >> /etc/nginx/nginx.conf && \
+    echo '            proxy_set_header Connection "upgrade";' >> /etc/nginx/nginx.conf && \
+    echo '            proxy_set_header Host $host;' >> /etc/nginx/nginx.conf && \
+    echo '            proxy_set_header X-Real-IP $remote_addr;' >> /etc/nginx/nginx.conf && \
+    echo '            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' >> /etc/nginx/nginx.conf && \
+    echo '            proxy_set_header X-Forwarded-Proto $scheme;' >> /etc/nginx/nginx.conf && \
+    echo '        }' >> /etc/nginx/nginx.conf && \
     echo '        location / {' >> /etc/nginx/nginx.conf && \
     echo '            try_files $uri $uri/ /index.html;' >> /etc/nginx/nginx.conf && \
     echo '        }' >> /etc/nginx/nginx.conf && \
     echo '    }' >> /etc/nginx/nginx.conf && \
     echo '}' >> /etc/nginx/nginx.conf
+
 
 # Copy built frontend from frontend-builder
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html/
