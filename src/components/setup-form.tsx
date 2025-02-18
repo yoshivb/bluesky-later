@@ -43,13 +43,20 @@ export function SetupForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div className="min-h-screen flex flex-col space-y-8 items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="space-y-2 text-center text-muted-foreground">
-        <h1 className="text-4xl font-bold text-black">Bluesky Later</h1>
+        <h1 className="text-4xl font-bold text-black">
+          Bluesky Later Self Host
+        </h1>
         <p>First-time Setup</p>
       </div>
       <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
-        <h2 className="text-2xl font-bold text-center mb-8 text-gray-800">
-          Create API Credentials
-        </h2>
+        <div className="text-center mb-8 space-y-2">
+          <h2 className="text-2xl font-bold text-center text-gray-800">
+            Create API Credentials
+          </h2>
+          <p className="text-gray-500">
+            These credentials will be used to protect this Bluesky Later server.
+          </p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -81,10 +88,6 @@ export function SetupForm({ onSuccess }: { onSuccess: () => void }) {
                 required
               />
             </div>
-            <p className="text-gray-500 mt-4">
-              These credentials will be used to authenticate API requests. Make
-              sure to save them in a secure place.
-            </p>
           </div>
           <button
             type="submit"
@@ -93,6 +96,13 @@ export function SetupForm({ onSuccess }: { onSuccess: () => void }) {
           >
             {isLoading ? "Creating..." : "Create Credentials"}
           </button>
+          <p className="text-gray-500 mt-4">
+            <strong>
+              Make sure to save the username and password in a secure place.
+            </strong>{" "}
+            If you lose or forget them, you will need to reset the database
+            manually.
+          </p>
         </form>
       </div>
     </div>
