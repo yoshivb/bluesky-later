@@ -12,6 +12,7 @@ import { getPostData } from "@/lib/bluesky";
 import { defaultPresets } from "./ui/date-time-picker-presets";
 import { DateTimePicker } from "./ui/date-time-picker";
 import { useDynamicPresets } from "./hooks/use-dynamic-presets";
+import { TimezoneClock } from "./ui/timezone-clock";
 
 export function PostScheduler() {
   const [lastUpdatedRaw, setLastUpdated] = useLocalStorage("lastUpdated");
@@ -193,6 +194,7 @@ export function PostScheduler() {
             }}
             presets={[...dynamicPresets, ...defaultPresets]}
           />
+          <TimezoneClock timezone={scheduledTimezone} className="mt-2" />
         </div>
 
         <button
