@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, addHours } from "date-fns";
+import { fromZonedTime } from "date-fns-tz";
 import { ImageData, ImageUpload } from "@/components/image-upload";
 import { OfflineInfo } from "@/components/offline-info";
 import { useLocalStorage } from "@/components/hooks/use-local-storage";
@@ -74,12 +75,14 @@ export function PostScheduler() {
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      if (!content || !scheduledDate || !scheduledTime) {
+      if (!content || !scheduledDate || !scheduledTime || !scheduledTimezone) {
         toast.error("Please fill in all required fields");
         return;
       }
 
-      const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`);
+      // Combine date, time, and timezone to get UTC date
+      const localDateTime = `${scheduledDate}T${scheduledTime}`;
+      const scheduledFor = fromZonedTime(localDateTime, scheduledTimezone);
       const urls = extractUrls(content);
       const firstUrl = urls[0]; // We'll use the first URL found
 
@@ -100,12 +103,14 @@ export function PostScheduler() {
           await db()?.updatePost(toEditPost.id, {
             data: postData,
             scheduledFor,
+            scheduledTimezone,
             status: "pending",
           });
         } else {
           await db()?.createPost({
             data: postData,
             scheduledFor,
+            scheduledTimezone,
             status: "pending",
           });
         }

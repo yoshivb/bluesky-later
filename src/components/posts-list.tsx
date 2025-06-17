@@ -139,6 +139,14 @@ export function PostsList({
                     <span>
                       Scheduled for{" "}
                       {format(post.scheduledFor, "MMM d, yyyy h:mm a")}
+                      {post.scheduledTimezone ? (
+                        <>
+                          {" "}
+                          <span className="ml-1">
+                            ({post.scheduledTimezone})
+                          </span>
+                        </>
+                      ) : null}
                     </span>
                     {firstImage && (
                       <>
