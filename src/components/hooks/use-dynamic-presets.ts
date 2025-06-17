@@ -19,22 +19,29 @@ export const useDynamicPresets = (lastUpdated?: string): DateTimePreset[] => {
         : latest;
     }, scheduledPosts[0]);
     const baseDate = new Date(lastPost.scheduledFor);
+    const lastPostTimezone =
+      lastPost.scheduledTimezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
     setPresets([
       {
         label: "5 minutes after the last pending post",
         getValue: () => addMinutes(baseDate, 5),
+        getTimezone: () => lastPostTimezone,
       },
       {
         label: "10 minutes after the last pending post",
         getValue: () => addMinutes(baseDate, 10),
+        getTimezone: () => lastPostTimezone,
       },
       {
         label: "30 minutes after the last pending post",
         getValue: () => addMinutes(baseDate, 30),
+        getTimezone: () => lastPostTimezone,
       },
       {
         label: "1 hour after the last pending post",
         getValue: () => addHours(baseDate, 1),
+        getTimezone: () => lastPostTimezone,
       },
     ]);
   }, []);

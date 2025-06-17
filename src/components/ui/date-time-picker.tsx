@@ -19,11 +19,14 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "./tooltip";
+import { toZonedTime } from "date-fns-tz";
+import { formatInTimeZone } from "date-fns-tz";
 
 // Type for preset
 export type DateTimePreset = {
   label: string;
   getValue: () => Date;
+  getTimezone?: () => string;
 };
 
 // Mode for allowed date/time selection
@@ -80,8 +83,15 @@ export const DateTimePicker = ({
   label,
   disabled = false,
 }: DateTimePickerProps) => {
-  // Compute min/max for date input
-  const today = format(new Date(), "yyyy-MM-dd");
+  // Compute 'today' in the selected timezone
+  const zonedNow = useMemo(() => {
+    try {
+      return toZonedTime(new Date(), value.timezone);
+    } catch {
+      return new Date();
+    }
+  }, [value.timezone]);
+  const today = format(zonedNow, "yyyy-MM-dd");
   const min = mode === "future" ? today : undefined;
   const max = mode === "past" ? today : undefined;
 
@@ -261,14 +271,18 @@ export const DateTimePicker = ({
               <DropdownMenuContent align="start">
                 {presets.map((preset) => {
                   const d = preset.getValue();
+                  const tz = preset.getTimezone
+                    ? preset.getTimezone()
+                    : value.timezone;
                   return (
                     <DropdownMenuItem
                       key={preset.label}
                       onSelect={() =>
                         onChange({
                           ...value,
-                          date: format(d, "yyyy-MM-dd"),
-                          time: format(d, "HH:mm"),
+                          date: formatInTimeZone(d, tz, "yyyy-MM-dd"),
+                          time: formatInTimeZone(d, tz, "HH:mm"),
+                          timezone: tz,
                         })
                       }
                     >
