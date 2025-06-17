@@ -2,11 +2,12 @@ import { RichText } from "@atproto/api";
 
 export interface Post {
   id?: number;
-  scheduledFor: Date;
+  scheduledFor: Date; // UTC
   status: "pending" | "published" | "failed";
   error?: string;
   createdAt: Date;
   data: PostData;
+  scheduledTimezone?: string;
 }
 
 export type BlobRefType = {

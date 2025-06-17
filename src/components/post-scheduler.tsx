@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Calendar, Clock, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, addHours } from "date-fns";
 import { ImageData, ImageUpload } from "@/components/image-upload";
@@ -8,9 +8,14 @@ import { useLocalStorage } from "@/components/hooks/use-local-storage";
 import { Post } from "@/lib/db/types";
 import { db } from "@/lib/db";
 import { getPostData } from "@/lib/bluesky";
+import { defaultPresets } from "./ui/date-time-picker-presets";
+import { DateTimePicker } from "./ui/date-time-picker";
+import { useDynamicPresets } from "./hooks/use-dynamic-presets";
 
 export function PostScheduler() {
-  const [, setLastUpdated] = useLocalStorage("lastUpdated");
+  const [lastUpdatedRaw, setLastUpdated] = useLocalStorage("lastUpdated");
+  const lastUpdated =
+    typeof lastUpdatedRaw === "string" ? lastUpdatedRaw : undefined;
   const [toEditPost, , clearToEditPost] = useLocalStorage<Post>("toEditPost");
 
   const defaultDate = addHours(new Date(), 24);
@@ -28,6 +33,10 @@ export function PostScheduler() {
       ? format(toEditPost.scheduledFor, "HH:mm")
       : format(defaultDate, "HH:mm")
   );
+  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [scheduledTimezone, setScheduledTimezone] = useState(
+    toEditPost?.scheduledTimezone || browserTimezone
+  );
   const [image, setImage] = useState<ImageData | undefined>(
     toEditPost?.data.embed?.images?.[0]
       ? {
@@ -38,6 +47,7 @@ export function PostScheduler() {
       : undefined
   );
   const [isLoading, setIsLoading] = useState(false);
+  const dynamicPresets = useDynamicPresets(lastUpdated);
 
   useEffect(() => {
     if (toEditPost) {
@@ -161,39 +171,23 @@ export function PostScheduler() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Date
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="date"
-                disabled={isLoading}
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                className="pl-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min={format(new Date(), "yyyy-MM-dd")}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Time
-            </label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="time"
-                disabled={isLoading}
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                className="pl-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
+        <div className="w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Date & Time
+          </label>
+          <DateTimePicker
+            value={{
+              date: scheduledDate,
+              time: scheduledTime,
+              timezone: scheduledTimezone,
+            }}
+            onChange={(val) => {
+              setScheduledDate(val.date);
+              setScheduledTime(val.time);
+              setScheduledTimezone(val.timezone);
+            }}
+            presets={[...dynamicPresets, ...defaultPresets]}
+          />
         </div>
 
         <button
