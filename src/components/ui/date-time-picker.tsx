@@ -129,11 +129,8 @@ export const DateTimePicker = ({
     return `${tz.label} (${offset})`;
   }, [tzOptions, value.timezone]);
 
-  // Auto-focus search input when dropdown opens
+  // Reset search when dropdown closes
   useEffect(() => {
-    if (dropdownOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
     if (!dropdownOpen) {
       setSearch("");
     }
@@ -193,7 +190,18 @@ export const DateTimePicker = ({
           />
           {/* Timezone */}
           <Tooltip>
-            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenu
+              open={dropdownOpen}
+              onOpenChange={(open) => {
+                setDropdownOpen(open);
+                if (open) {
+                  // Focus the search input when opening
+                  setTimeout(() => {
+                    searchInputRef.current?.focus();
+                  }, 0);
+                }
+              }}
+            >
               <DropdownMenuTrigger asChild>
                 <TooltipTrigger asChild>
                   <Button
