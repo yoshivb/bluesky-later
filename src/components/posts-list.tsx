@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import {
   AlertCircle,
   CheckCircle,
@@ -138,7 +139,21 @@ export function PostsList({
                     <Clock className="h-4 w-4" />
                     <span>
                       Scheduled for{" "}
-                      {format(post.scheduledFor, "MMM d, yyyy h:mm a")}
+                      {post.scheduledTimezone
+                        ? formatInTimeZone(
+                            post.scheduledFor,
+                            post.scheduledTimezone,
+                            "MMM d, yyyy h:mm a"
+                          )
+                        : format(post.scheduledFor, "MMM d, yyyy h:mm a")}
+                      {post.scheduledTimezone ? (
+                        <>
+                          {" "}
+                          <span className="ml-1">
+                            ({post.scheduledTimezone})
+                          </span>
+                        </>
+                      ) : null}
                     </span>
                     {firstImage && (
                       <>
