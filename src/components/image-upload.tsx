@@ -17,7 +17,11 @@ export type ImageData = {
   localImageId?: number;
   type: string;
   alt: string;
-  blobRef?: BlobRefType;
+  blobRef: BlobRefType;
+  aspectRatio: {
+    width: number;
+    height: number;
+  }
 };
 interface ImageUploadProps {
   onImageSelect: (imageData: ImageData) => void;
@@ -65,7 +69,7 @@ export function ImageUpload({
     try {
       const creds = await getStoredCredentials();
       if (!creds) throw new Error("No credentials set");
-      const { type, blobRef } = await uploadImage(file, agent, creds);
+      const { type, blobRef, aspectRatio } = await uploadImage(file, agent, creds);
 
       const imageStore = new ImageStore();
       const imageId = await imageStore.saveImage(file);
@@ -77,6 +81,7 @@ export function ImageUpload({
         type,
         alt: altText,
         blobRef,
+        aspectRatio
       });
     } catch (error) {
       console.error(error);
@@ -170,7 +175,7 @@ export function ImageUpload({
           <img
             src={previewImage || ""}
             alt={selectedImage.alt}
-            className="w-full h-48 object-cover rounded-lg"
+            className="w-full aspect-square object-contain rounded-lg"
           />
           <button
             disabled={isGeneratingAltText || isUploading}

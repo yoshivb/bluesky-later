@@ -39,14 +39,8 @@ export function PostScheduler() {
   const [scheduledTimezone, setScheduledTimezone] = useState(
     toEditPost?.scheduledTimezone || browserTimezone
   );
-  const [image, setImage] = useState<ImageData | undefined>(
-    toEditPost?.data.embed?.images?.[0]
-      ? {
-          ...toEditPost.data.embed.images[0],
-          type: toEditPost.data.embed.images[0].image.mimeType || "",
-          alt: toEditPost.data.embed.images[0].alt || "",
-        }
-      : undefined
+  const [images, setImages] = useState<ImageData[]|undefined>(
+    toEditPost?.data.embed?.images?.map((_image) => { return {..._image, blobRef: _image.image, type: _image.image.mimeType || "", alt: _image.alt || "" }; })
   );
   const [isLoading, setIsLoading] = useState(false);
   const dynamicPresets = useDynamicPresets(lastUpdated);
@@ -57,18 +51,14 @@ export function PostScheduler() {
       setScheduledDate(format(toEditPost.scheduledFor, "yyyy-MM-dd"));
       setScheduledTime(format(toEditPost.scheduledFor, "HH:mm"));
       if (toEditPost?.data.embed?.images?.[0]) {
-        setImage({
-          ...toEditPost.data.embed.images[0],
-          type: toEditPost.data.embed.images[0].image.mimeType || "",
-          alt: toEditPost.data.embed.images[0].alt || "",
-        });
+        setImages(toEditPost?.data.embed?.images?.map((_image) => { return {..._image, blobRef: _image.image, type: _image.image.mimeType || "", alt: _image.alt || "" }; }));
       }
     } else {
       setContent("");
       const defaultDate = addHours(new Date(), 24);
       setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
       setScheduledTime(format(defaultDate, "HH:mm"));
-      setImage(undefined);
+      setImages(undefined);
     }
   }, [toEditPost]);
 
@@ -98,7 +88,7 @@ export function PostScheduler() {
           scheduledAt: scheduledFor,
           content,
           url: firstUrl,
-          image,
+          images: images,
         });
         if (toEditPost && toEditPost.id) {
           await db()?.updatePost(toEditPost.id, {
@@ -122,7 +112,7 @@ export function PostScheduler() {
         const defaultDate = addHours(new Date(), 24);
         setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
         setScheduledTime(format(defaultDate, "HH:mm"));
-        setImage(undefined);
+        setImages(undefined);
         setLastUpdated(new Date().toISOString());
         setIsLoading(false);
         clearToEditPost();
@@ -136,7 +126,7 @@ export function PostScheduler() {
       content,
       scheduledDate,
       scheduledTime,
-      image,
+      images,
       toEditPost,
       setLastUpdated,
       clearToEditPost,
@@ -168,13 +158,15 @@ export function PostScheduler() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Image (optional)
+            Images (optional)
           </label>
-          <ImageUpload
-            onImageSelect={setImage}
-            onImageClear={() => setImage(undefined)}
-            selectedImage={image}
-          />
+          {Array.from({length: Math.min(4, (images?.length ?? 0) + 1)}, (_, i) =>{
+              return <ImageUpload
+                onImageSelect={(_image) => setImages(images ? [...images, _image] : [_image])}
+                onImageClear={() => setImages(undefined)}
+                selectedImage={images?.at(i)}
+              />;
+          })}
         </div>
 
         <div className="w-full">

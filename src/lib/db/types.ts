@@ -1,4 +1,5 @@
 import { RichText } from "@atproto/api";
+import { AspectRatio } from "@atproto/api/dist/client/types/app/bsky/embed/images";
 
 export interface Post {
   id?: number;
@@ -36,6 +37,7 @@ export type PostData = {
         mimeType: string;
         size: number;
       };
+      aspectRatio: AspectRatio
     }>;
     external?: {
       uri: string;

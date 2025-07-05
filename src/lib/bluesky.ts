@@ -3,6 +3,7 @@ import { BlobRefType, PostData } from "@/lib/db/types";
 import { fetchUrlMetadata } from "./metadata";
 import { ApiCredentials } from "./api";
 import { createDatabase, db } from "@/lib/db";
+import { AspectRatio } from "@atproto/api/dist/client/types/app/bsky/embed/images";
 
 export const agent = new BskyAgent({
   service: "https://bsky.social",
@@ -50,17 +51,18 @@ export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
 export const getPostData = async ({
   content,
   url,
-  image,
+  images,
   scheduledAt,
 }: {
   scheduledAt: Date;
   content: string;
   url?: string;
-  image?: {
-    blobRef?: BlobRefType;
+  images?: {
+    blobRef: BlobRefType;
     alt?: string;
     localImageId?: number;
-  };
+    aspectRatio: AspectRatio
+  }[];
 }): Promise<PostData> => {
   const credentials = await db()?.getCredentials();
   if (!credentials) throw new Error("No credentials set");
@@ -82,16 +84,18 @@ export const getPostData = async ({
       $type: "app.bsky.embed.external",
       external,
     };
-  } else if (image?.blobRef) {
+  } else if (images) {
     postData.embed = {
       $type: "app.bsky.embed.images",
-      images: [
-        {
-          alt: image.alt || "",
-          image: image.blobRef,
-          localImageId: image.localImageId,
-        },
-      ],
+      images: images.filter((_image) => _image.blobRef !== undefined).map(
+        (_image) => { 
+          return {
+            image: _image.blobRef, 
+            localImageId: _image.localImageId,
+            alt: _image.alt || "",
+            aspectRatio: _image.aspectRatio
+          }; 
+      }),
     };
   }
 
