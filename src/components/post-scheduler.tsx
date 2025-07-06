@@ -6,7 +6,7 @@ import { fromZonedTime } from "date-fns-tz";
 import { ImageData, ImageUpload } from "@/components/image-upload";
 import { OfflineInfo } from "@/components/offline-info";
 import { useLocalStorage } from "@/components/hooks/use-local-storage";
-import { Post } from "@/lib/db/types";
+import { LabelOptionType, LabelOptions, Post } from "@/lib/db/types";
 import { db } from "@/lib/db";
 import { getPostData } from "@/lib/bluesky";
 import { defaultPresets } from "./ui/date-time-picker-presets";
@@ -20,7 +20,7 @@ export function PostScheduler() {
     typeof lastUpdatedRaw === "string" ? lastUpdatedRaw : undefined;
   const [toEditPost, , clearToEditPost] = useLocalStorage<Post>("toEditPost");
 
-  const defaultDate = addHours(new Date(), 24);
+  const defaultDate = addHours(new Date(), 1);
 
   const [content, setContent] = useState(
     toEditPost ? toEditPost.data.text : ""
@@ -42,6 +42,9 @@ export function PostScheduler() {
   const [images, setImages] = useState<ImageData[]|undefined>(
     toEditPost?.data.embed?.images?.map((_image) => { return {..._image, blobRef: _image.image, type: _image.image.mimeType || "", alt: _image.alt || "" }; })
   );
+  const [labels, setLabels] = useState<LabelOptionType>(
+    toEditPost?.data.labels?.values?.[0]?.val
+  )
   const [isLoading, setIsLoading] = useState(false);
   const dynamicPresets = useDynamicPresets(lastUpdated);
 
@@ -55,7 +58,7 @@ export function PostScheduler() {
       }
     } else {
       setContent("");
-      const defaultDate = addHours(new Date(), 24);
+      const defaultDate = addHours(new Date(), 1);
       setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
       setScheduledTime(format(defaultDate, "HH:mm"));
       setImages(undefined);
@@ -88,7 +91,8 @@ export function PostScheduler() {
           scheduledAt: scheduledFor,
           content,
           url: firstUrl,
-          images: images,
+          images,
+          labels
         });
         if (toEditPost && toEditPost.id) {
           await db()?.updatePost(toEditPost.id, {
@@ -109,11 +113,12 @@ export function PostScheduler() {
         toast.success("Post scheduled successfully!");
         setContent("");
 
-        const defaultDate = addHours(new Date(), 24);
+        const defaultDate = addHours(new Date(), 1);
         setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
         setScheduledTime(format(defaultDate, "HH:mm"));
         setImages(undefined);
         setLastUpdated(new Date().toISOString());
+        setLabels(undefined);
         setIsLoading(false);
         clearToEditPost();
       } catch (error: unknown) {
@@ -167,6 +172,23 @@ export function PostScheduler() {
                 selectedImage={images?.at(i)}
               />;
           })}
+        </div>
+
+        <div className="w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Label (optional)
+          </label>
+          <fieldset className="flex gap-3 mb-2">
+            {LabelOptions.map(({key, label}) => {
+              return <label className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-full p-2 has-[:checked]:bg-blue-700 has-[:checked]:text-white grow">
+                <input className="hidden" type="radio" name="post-label" checked={labels === key} onChange={() => setLabels(key)} />
+                <p className="text-center text-sm">{label}</p>
+              </label>
+            })}
+          </fieldset>
+          <p className="block text-xs text-gray-500 min-h-4">
+            {LabelOptions.find((option) => option.key === labels)?.tooltip ?? ""}
+          </p>
         </div>
 
         <div className="w-full">

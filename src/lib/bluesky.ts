@@ -1,5 +1,5 @@
 import { BskyAgent, RichText } from "@atproto/api";
-import { BlobRefType, PostData } from "@/lib/db/types";
+import { BlobRefType, LabelOptionType, PostData } from "@/lib/db/types";
 import { fetchUrlMetadata } from "./metadata";
 import { ApiCredentials } from "./api";
 import { createDatabase, db } from "@/lib/db";
@@ -53,6 +53,7 @@ export const getPostData = async ({
   url,
   images,
   scheduledAt,
+  labels,
 }: {
   scheduledAt: Date;
   content: string;
@@ -63,6 +64,7 @@ export const getPostData = async ({
     localImageId?: number;
     aspectRatio: AspectRatio
   }[];
+  labels: LabelOptionType
 }): Promise<PostData> => {
   const credentials = await db()?.getCredentials();
   if (!credentials) throw new Error("No credentials set");
@@ -76,6 +78,10 @@ export const getPostData = async ({
     text: richText.text,
     facets: richText.facets,
     createdAt: scheduledAt.toISOString(),
+    labels: labels ? { 
+      $type: "com.atproto.label.defs#selfLabels", 
+      values: [{val: labels}] 
+    } : undefined
   };
 
   if (url) {

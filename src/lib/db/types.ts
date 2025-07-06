@@ -20,10 +20,23 @@ export type BlobRefType = {
   size: number;
 };
 
+export const LabelOptions = [
+  {key: undefined, label: "None", tooltip: undefined},
+  {key: "nudity", label: "Nudity", tooltip: "Artistic or non-erotic nudity."},
+  {key: "sexual", label: "Sexual", tooltip: "Pictures meant for adults."},
+  {key: "porn", label: "Porn", tooltip: "Sexual activity or erotic nudity."},
+  {key: "graphic-media", label: "Graphic Media", tooltip: "Media that contains violence / gore"}] as const;
+export const LabelOptionsKeys = LabelOptions.map((pair) => pair.key);
+export type LabelOptionType = typeof LabelOptionsKeys[number];
+
 export type PostData = {
   text: string;
   facets?: RichText["facets"];
   createdAt: string;
+  labels?: {
+    $type: string,
+    values: {val: Exclude<LabelOptionType, undefined>}[]
+  };
   embed?: {
     $type: string;
     images?: Array<{
