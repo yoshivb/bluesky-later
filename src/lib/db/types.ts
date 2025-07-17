@@ -9,6 +9,15 @@ export interface Post {
   createdAt: Date;
   data: PostData;
   scheduledTimezone?: string;
+  repostDates?: Date[];
+}
+
+export interface RepostData {
+  id?: number;
+  scheduledFor: Date;
+  uri: string;
+  cid: string;
+  postData?: PostData
 }
 
 export type BlobRefType = {
@@ -76,6 +85,15 @@ export interface DatabaseInterface {
   createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post>;
   updatePost(id: number, post: Partial<Post>): Promise<void>;
   deletePost(id: number): Promise<void>;
+
+  getScheduledReposts(): Promise<RepostData[]>;
+  getRepostsToSend(): Promise<RepostData[]>;
+  getPublishedReposts(): Promise<RepostData[]>;
+  getAllReposts(): Promise<RepostData[]>;
+  createRepost(repost: RepostData): Promise<RepostData>;
+  updateRepost(id: number, repost: Partial<RepostData>): Promise<void>;
+  deleteRepost(id: number): Promise<void>;
+
   getCredentials(): Promise<Credentials | null>;
   setCredentials(creds: Omit<Credentials, "id">): Promise<void>;
   deleteCredentials(): Promise<void>;

@@ -17,6 +17,8 @@ import { db } from "@/lib/db";
 import { Button } from "./ui/button";
 import { ImageStore } from "./image-store";
 
+type PostOrRepost = Post & {isRepost?: boolean};
+
 export function PostsList({
   EmptyComponent,
   type = "scheduled",
@@ -24,24 +26,74 @@ export function PostsList({
   EmptyComponent?: React.ReactNode;
   type?: "scheduled" | "published";
 }) {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostOrRepost[]>([]);
   const [lastUpdated, setLastUpdated] = useLocalStorage("lastUpdated");
   const [toEditPost, setToEditPost, clearToEditPost] =
     useLocalStorage<Post>("toEditPost");
 
   const fetchPosts = useCallback(async () => {
+    let AllFetchedPosts : PostOrRepost[] = [];
+
     const fetchedPosts =
       type === "scheduled"
         ? await db()?.getScheduledPosts()
         : await db()?.getPublishedPosts();
+    if(fetchedPosts)
+    {
+      AllFetchedPosts = AllFetchedPosts.concat(fetchedPosts);
+      if(type === "scheduled")
+      {
+        for(const fetchedPost of fetchedPosts)
+        {
+          if(fetchedPost.repostDates)
+          {
+            for(const repostDate of fetchedPost.repostDates)
+            {
+              AllFetchedPosts.push({
+                data: fetchedPost.data,
+                scheduledFor: repostDate,
+                id: fetchedPost.id,
+                isRepost: true
+            } as PostOrRepost)
+            }
+          }
+        }
+      }
+    }
+      
+    const fetchedReposts = type === "scheduled"
+        ? await db()?.getScheduledReposts()
+        : await db()?.getPublishedReposts();
+    if(fetchedReposts && fetchedReposts.length > 0)
+    {
+      const finalReposts = fetchedReposts.map((repost) => {
+        if(repost.postData)
+        {
+          return {
+            data: repost.postData,
+            scheduledFor: repost.scheduledFor,
+            id: repost.id,
+            isRepost: true
+          } as PostOrRepost;
+        }
+      }).filter((post) => post !== undefined);
+
+      AllFetchedPosts = AllFetchedPosts.concat(finalReposts);
+    }
+    AllFetchedPosts.sort(
+      (a, b) => {
+        if(type === "scheduled")
+        {
+          return new Date(a.scheduledFor).getTime() -
+          new Date(b.scheduledFor).getTime()
+        }
+        else
+        {
+          return new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime()
+        }
+    });
     setPosts(
-      fetchedPosts
-        ? fetchedPosts.sort(
-            (a, b) =>
-              new Date(a.scheduledFor).getTime() -
-              new Date(b.scheduledFor).getTime()
-          )
-        : []
+      AllFetchedPosts
     );
   }, [type]);
 
@@ -172,10 +224,13 @@ export function PostsList({
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {post.status === "pending" && (
+                  {post.isRepost && (
+                    <p className="text-sm text-gray-500">Repost</p>
+                  )}
+                  {!post.isRepost && post.status === "pending" && (
                     <Clock className="h-5 w-5 text-yellow-500" />
                   )}
-                  {post.status !== "published" && (
+                  {!post.isRepost && post.status !== "published" && (
                     <button
                       disabled={!!toEditPost}
                       onClick={() => {
@@ -185,10 +240,10 @@ export function PostsList({
                       <PenIcon className="h-5 w-5 text-gray-400" />
                     </button>
                   )}
-                  {post.status === "published" && (
+                  {!post.isRepost && post.status === "published" && (
                     <CheckCircle className="h-5 w-5 text-green-500" />
                   )}
-                  {post.status === "failed" && (
+                  {!post.isRepost && post.status === "failed" && (
                     <div className="relative group">
                       <AlertCircle className="h-5 w-5 text-red-500" />
                       {post.error && (
@@ -198,13 +253,13 @@ export function PostsList({
                       )}
                     </div>
                   )}
-                  <button
+                  {!post.isRepost && (<button
                     disabled={!!toEditPost}
                     onClick={() => post.id && deletePost(post.id)}
                     className="text-gray-400 hover:text-red-600 transition-colors"
                   >
                     <Trash2 className="h-5 w-5" />
-                  </button>
+                  </button>)}
                 </div>
               </div>
             </div>

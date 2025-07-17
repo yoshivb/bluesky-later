@@ -1,8 +1,9 @@
 import Dexie, { type Table } from "dexie";
-import type { DatabaseInterface, Post, Credentials } from "./types";
+import type { DatabaseInterface, Post, Credentials, RepostData } from "./types";
 
 class BlueSkyDB extends Dexie {
   posts!: Table<Post>;
+  reposts!: Table<RepostData>;
   credentials!: Table<{
     id: number;
     identifier: string;
@@ -63,6 +64,43 @@ export class LocalDB implements DatabaseInterface {
 
   async deletePost(id: number): Promise<void> {
     await this.db.posts.delete(id);
+  }
+
+  async getRepostsToSend(): Promise<RepostData[]> {
+    return this.db.reposts
+      .where("status")
+      .equals("pending")
+      .and((repost) => new Date(repost.scheduledFor) <= new Date())
+      .toArray();
+  }
+
+  async getScheduledReposts(): Promise<RepostData[]> {
+    return this.db.reposts
+      .where("status")
+      .equals("pending")
+      .and((repost) => new Date(repost.scheduledFor) > new Date())
+      .toArray();
+  }
+
+  async getPublishedReposts(): Promise<RepostData[]> {
+    return this.db.reposts.where("status").equals("published").toArray();
+  }
+
+  async getAllReposts(): Promise<RepostData[]> {
+    return this.db.reposts.toArray();
+  }
+
+  async createRepost(repost: RepostData): Promise<RepostData> {
+    const id = await this.db.reposts.add(repost);
+    return this.db.reposts.get(id) as Promise<RepostData>;
+  }
+
+  async updateRepost(id: number, repost: Partial<RepostData>): Promise<void> {
+    await this.db.reposts.update(id, repost);
+  }
+  
+  async deleteRepost(id: number): Promise<void> {
+    await this.db.reposts.delete(id);
   }
 
   async getCredentials(): Promise<Credentials | null> {

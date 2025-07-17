@@ -123,7 +123,16 @@ async function initDB() {
       scheduled_for TIMESTAMP WITH TIME ZONE NOT NULL,
       status TEXT NOT NULL,
       error TEXT,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      repost_dates TIMESTAMP WITH TIME ZONE ARRAY
+    );
+
+    CREATE TABLE IF NOT EXISTS reposts (
+      id SERIAL PRIMARY KEY,
+      status TEXT NOT NULL,
+      scheduled_for TIMESTAMP WITH TIME ZONE NOT NULL,
+      uri TEXT NOT NULL,
+      cid TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS credentials (
@@ -178,10 +187,10 @@ app.get("/api/posts", async (req, res) => {
 });
 
 app.post("/api/posts", async (req, res) => {
-  const { data, scheduledFor } = req.body;
+  const { data, scheduledFor, repostDates } = req.body;
   const result = await pool.query(
-    "INSERT INTO posts (data, scheduled_for, status) VALUES ($1, $2, $3) RETURNING *",
-    [data, scheduledFor, "pending"]
+    "INSERT INTO posts (data, scheduled_for, status, repost_dates) VALUES ($1, $2, $3, $4) RETURNING *",
+    [data, scheduledFor, "pending", repostDates]
   );
   res.json(result.rows[0]);
 });
@@ -202,6 +211,88 @@ app.patch("/api/posts/:id", async (req, res) => {
   res.json({ success: true });
 });
 
+async function getScheduledReposts(reposts: {uri: string, cid: string}[])
+{
+  const uris = reposts.map((val) => val.uri);
+  if(uris.length == 0)
+  {
+    return [];
+  }
+
+  const { rows: [creds] } = await pool.query("SELECT * FROM credentials LIMIT 1");
+
+  const agent = new BskyAgent({ service: "https://bsky.social" });
+  await agent.login({
+    identifier: creds.identifier,
+    password: creds.password,
+  });
+
+  const postsResponse = await agent.getPosts({uris});
+
+  console.log("Found reposts: ", postsResponse.data.posts);
+  
+  return reposts.map((repost) => {
+    return {
+      postData: postsResponse.data.posts.find((post) => post.uri === repost.uri)?.record,
+      ...repost
+    }
+  })
+}
+
+app.get("/api/reposts/scheduled", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM reposts WHERE status = $1",
+    ["pending"]
+  );
+  res.json(await getScheduledReposts(result.rows));
+});
+
+app.get("/api/reposts/published", async (req, res) => {
+  const result = await pool.query("SELECT * FROM reposts WHERE status = $1", [
+    "published",
+  ]);
+  res.json(await getScheduledReposts(result.rows));
+});
+
+app.get("/api/reposts/to-send", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM reposts WHERE status = $1 AND scheduled_for <= NOW()",
+    ["pending"]
+  );
+  res.json(await getScheduledReposts(result.rows));
+});
+
+app.get("/api/reposts", async (req, res) => {
+  const result = await pool.query("SELECT * FROM reposts");
+  res.json(await getScheduledReposts(result.rows));
+});
+
+app.post("/api/reposts", async (req, res) => {
+  const { cid, uri, scheduledFor } = req.body;
+  const result = await pool.query(
+    "INSERT INTO reposts (cid, uri, scheduled_for, status) VALUES ($1, $2, $3, $4) RETURNING *",
+    [cid, uri, scheduledFor, "pending"]
+  );
+  const reposts = await getScheduledReposts(result.rows);
+  res.json(reposts[0]);
+});
+
+app.delete("/api/reposts/:id", async (req, res) => {
+  const { id } = req.params;
+  await pool.query("DELETE FROM reposts WHERE id = $1", [id]);
+  res.json({ success: true });
+});
+
+app.patch("/api/reposts/:id", async (req, res) => {
+  const { id } = req.params;
+  const { scheduledFor, status } = req.body;
+  await pool.query(
+    "UPDATE reposts SET status = $1, scheduled_for = $2 WHERE id = $3",
+    [status, scheduledFor, id]
+  );
+  res.json({ success: true });
+});
+
 // Cron endpoint
 app.post("/api/cron/check-posts", async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -209,29 +300,42 @@ app.post("/api/cron/check-posts", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  const { rows: [creds] } = await pool.query("SELECT * FROM credentials LIMIT 1");
+
+  const agent = new BskyAgent({ service: "https://bsky.social" });
+  await agent.login({
+    identifier: creds.identifier,
+    password: creds.password,
+  });
+
   const { rows: posts } = await pool.query(
     "SELECT * FROM posts WHERE status = $1 AND scheduled_for <= NOW()",
     ["pending"]
   );
 
+  let repostsScheduled = 0;
+
   for (const post of posts) {
     try {
-      const {
-        rows: [creds],
-      } = await pool.query("SELECT * FROM credentials LIMIT 1");
-
-      const agent = new BskyAgent({ service: "https://bsky.social" });
-      await agent.login({
-        identifier: creds.identifier,
-        password: creds.password,
-      });
-
-      await agent.post(post.data);
+      const postInfo = await agent.post(post.data);
 
       await pool.query("UPDATE posts SET status = $1 WHERE id = $2", [
         "published",
         post.id,
       ]);
+
+      let repostDatesInfo = post.repost_dates as string[]|undefined;
+      if(repostDatesInfo)
+      {
+        for(let repostDate of repostDatesInfo)
+        {
+          repostsScheduled++;
+          await pool.query(
+            "INSERT INTO reposts (cid, uri, scheduled_for, status) VALUES ($1, $2, $3, $4)",
+            [postInfo.cid, postInfo.uri, repostDate, "pending"]
+          );
+        }
+      }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -239,7 +343,46 @@ app.post("/api/cron/check-posts", async (req, res) => {
         "UPDATE posts SET status = $1, error = $2 WHERE id = $3",
         ["failed", errorMessage, post.id]
       );
+
+      console.error(errorMessage);
     }
+  }
+
+  const { rows: reposts } = await pool.query(
+    "SELECT * FROM reposts WHERE status = $1 AND scheduled_for <= NOW()",
+    ["pending"]
+  );
+
+  for (const repost of reposts) {
+    try {
+      await agent.repost(repost.uri, repost.cid);
+
+      await pool.query("UPDATE reposts SET status = $1 WHERE id = $2", [
+        "published",
+        repost.id,
+      ]);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      await pool.query(
+        "UPDATE reposts SET status = $1 WHERE id = $3",
+        ["failed", repost.id]
+      );
+      console.error(errorMessage);
+    }
+  }
+
+  if(posts.length > 0)
+  {
+    console.log(`Tried to post [${posts.length}] scheduled posts!`);
+  }
+  if(repostsScheduled > 0)
+  {
+    console.log(`Tried to schedule [${repostsScheduled}] reposts!`);
+  }
+  if(reposts.length > 0)
+  {
+    console.log(`Tried to repost ${reposts.length} scheduled reposts!`);
   }
 
   res.json({ success: true });

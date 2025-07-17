@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Send } from "lucide-react";
+import { Minus, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, addHours } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
@@ -48,11 +48,20 @@ export function PostScheduler() {
   const [isLoading, setIsLoading] = useState(false);
   const dynamicPresets = useDynamicPresets(lastUpdated);
 
+  const [scheduledRepostDates, setScheduledRepostDates] = useState(
+    toEditPost?.repostDates?.map((repostDate) => format(repostDate, "yyyy-MM-dd"))
+  );
+  const [scheduledRepostTimes, setScheduledRepostTimes] = useState(
+    toEditPost?.repostDates?.map((repostDate) => format(repostDate, "HH:mm"))
+  );
+
   useEffect(() => {
     if (toEditPost) {
       setContent(toEditPost.data.text);
       setScheduledDate(format(toEditPost.scheduledFor, "yyyy-MM-dd"));
       setScheduledTime(format(toEditPost.scheduledFor, "HH:mm"));
+      setScheduledRepostDates(toEditPost?.repostDates?.map((repostDate) => format(repostDate, "yyyy-MM-dd")));
+      setScheduledRepostTimes(toEditPost?.repostDates?.map((repostDate) => format(repostDate, "HH:mm")));
       if (toEditPost?.data.embed?.images?.[0]) {
         setImages(toEditPost?.data.embed?.images?.map((_image) => { return {..._image, blobRef: _image.image, type: _image.image.mimeType || "", alt: _image.alt || "" }; }));
       }
@@ -61,6 +70,8 @@ export function PostScheduler() {
       const defaultDate = addHours(new Date(), 1);
       setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
       setScheduledTime(format(defaultDate, "HH:mm"));
+      setScheduledRepostDates(undefined);
+      setScheduledRepostTimes(undefined);
       setImages(undefined);
     }
   }, [toEditPost]);
@@ -79,10 +90,24 @@ export function PostScheduler() {
       const scheduledFor = fromZonedTime(localDateTime, scheduledTimezone);
       const urls = extractUrls(content);
       const firstUrl = urls[0]; // We'll use the first URL found
+      const repostDates = scheduledRepostDates?.map((repostDate, index) => {
+        return fromZonedTime(`${repostDate}T${scheduledRepostTimes?.[index]}`, scheduledTimezone);
+      })
 
       if (scheduledFor < new Date()) {
         toast.error("Cannot schedule posts in the past");
         return;
+      }
+
+      if(repostDates)
+      {
+        for(const repostDate of repostDates)
+        {
+          if (repostDate < new Date()) {
+            toast.error("Cannot schedule repost in the past");
+            return;
+          }
+        }
       }
 
       try {
@@ -94,11 +119,13 @@ export function PostScheduler() {
           images,
           labels
         });
+
         if (toEditPost && toEditPost.id) {
           await db()?.updatePost(toEditPost.id, {
             data: postData,
             scheduledFor,
             scheduledTimezone,
+            repostDates,
             status: "pending",
           });
         } else {
@@ -106,6 +133,7 @@ export function PostScheduler() {
             data: postData,
             scheduledFor,
             scheduledTimezone,
+            repostDates,
             status: "pending",
           });
         }
@@ -116,6 +144,8 @@ export function PostScheduler() {
         const defaultDate = addHours(new Date(), 1);
         setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
         setScheduledTime(format(defaultDate, "HH:mm"));
+        setScheduledRepostDates(undefined);
+        setScheduledRepostTimes(undefined);
         setImages(undefined);
         setLastUpdated(new Date().toISOString());
         setLabels(undefined);
@@ -132,6 +162,8 @@ export function PostScheduler() {
       scheduledDate,
       scheduledTime,
       images,
+      scheduledRepostDates,
+      scheduledRepostTimes,
       toEditPost,
       setLastUpdated,
       clearToEditPost,
@@ -209,6 +241,68 @@ export function PostScheduler() {
             presets={[...dynamicPresets, ...defaultPresets]}
           />
           <TimezoneClock timezone={scheduledTimezone} className="mt-2" />
+        </div>
+
+        <div className="w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Reposts
+          </label>
+          <div className="flex flex-col gap-3">
+          {scheduledRepostDates?.map((_, index) => {
+           const repostDate = scheduledRepostDates?.[index];
+           const repostTime =scheduledRepostTimes?.[index];
+           if(repostDate && repostTime)
+           {
+            return <div className="flex flex-row gap-2">
+                <DateTimePicker
+                value={{
+                  date: repostDate,
+                  time: repostTime,
+                  timezone: scheduledTimezone,
+                }}
+                onChange={(val) => {
+                  setScheduledRepostDates(scheduledRepostDates.map((date, i) => i === index ? val.date : date));
+                  setScheduledRepostTimes(scheduledRepostTimes.map((time, i) => i === index ? val.time : time));
+                }}
+                presets={[...dynamicPresets, ...defaultPresets]}
+                />
+                <button
+                disabled={isLoading}
+                type="button"
+                className="text-sm bg-blue-600 aspect-square disabled:bg-blue-400 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                onClick={() => {
+                  const newDates = [...scheduledRepostDates];
+                  const newTimes = [...scheduledRepostTimes];
+                  newDates.splice(index, 1);
+                  newTimes.splice(index, 1);
+                  setScheduledRepostDates(newDates.length > 0 ? newDates : undefined);
+                  setScheduledRepostTimes(newTimes.length > 0 ? newTimes : undefined);
+                }}
+                >
+                  <Minus className="h-5 w-5" />
+                </button>
+              </div>
+            }
+          })}
+          <button
+            disabled={isLoading}
+            type="button"
+            className="w-full text-sm bg-blue-600 disabled:bg-blue-400 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            onClick={() => {
+              let baselineDate = fromZonedTime(`${scheduledDate}T${scheduledTime}`, scheduledTimezone);
+
+              const defaultDate = addHours(baselineDate, 24 * ((scheduledRepostDates?.length ?? 0) + 1));
+              const dateToAdd = format(defaultDate, "yyyy-MM-dd");
+              const timeToAdd = format(defaultDate, "HH:mm");
+
+              setScheduledRepostDates(scheduledRepostDates ? [...scheduledRepostDates, dateToAdd] : [dateToAdd]);
+              setScheduledRepostTimes(scheduledRepostTimes ? [...scheduledRepostTimes, timeToAdd] : [timeToAdd]);
+            }}
+          >
+            <Plus className="h-5 w-5" />
+            {isLoading ? "Scheduling..." : "Add Repost"}
+          </button>
+          </div>
         </div>
 
         <button

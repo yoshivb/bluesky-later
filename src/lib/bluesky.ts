@@ -53,7 +53,7 @@ export const getPostData = async ({
   url,
   images,
   scheduledAt,
-  labels,
+  labels
 }: {
   scheduledAt: Date;
   content: string;
@@ -64,7 +64,7 @@ export const getPostData = async ({
     localImageId?: number;
     aspectRatio: AspectRatio
   }[];
-  labels: LabelOptionType
+  labels: LabelOptionType;
 }): Promise<PostData> => {
   const credentials = await db()?.getCredentials();
   if (!credentials) throw new Error("No credentials set");

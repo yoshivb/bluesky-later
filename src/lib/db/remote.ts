@@ -1,5 +1,5 @@
 import { parseISO } from "date-fns";
-import type { DatabaseInterface, Post, Credentials } from "./types";
+import type { DatabaseInterface, Post, Credentials, RepostData } from "./types";
 import { ApiCredentials, makeAuthenticatedRequest } from "../api";
 
 export class RemoteDB implements DatabaseInterface {
@@ -27,6 +27,7 @@ export class RemoteDB implements DatabaseInterface {
     return {
       ...post,
       scheduledFor: parseISO(post.scheduled_for as string),
+      repostDates: (post.repost_dates as string[]|undefined)?.map((date) => parseISO(date))
     };
   };
 
@@ -78,6 +79,53 @@ export class RemoteDB implements DatabaseInterface {
 
   async deletePost(id: number): Promise<void> {
     await this.fetchApi(`/posts/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+
+  async getPublishedReposts(): Promise<RepostData[]> {
+    return this.fetchApi("/reposts/published").then((reposts) =>
+      reposts.map(this.deserializePost)
+    );
+  }
+
+  async getScheduledReposts(): Promise<RepostData[]> {
+    return this.fetchApi("/reposts/scheduled").then((reposts) =>
+      reposts.map(this.deserializePost)
+    );
+  }
+
+  async getRepostsToSend(): Promise<RepostData[]> {
+    return this.fetchApi("/reposts/to-send").then((reposts) =>
+      reposts.map(this.deserializePost)
+    );
+  }
+
+  async getAllReposts(): Promise<RepostData[]> {
+    return this.fetchApi("/reposts").then((reposts) => {
+      return reposts.map(this.deserializePost);
+    });
+  }
+
+  async createRepost(repost: RepostData): Promise<RepostData> {
+    return this.fetchApi("/reposts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(repost),
+    });
+  }
+
+  async updateRepost(id: number, repost: Partial<RepostData>): Promise<void> {
+    await this.fetchApi(`/reposts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(repost),
+    });
+  }
+
+  async deleteRepost(id: number): Promise<void> {
+    await this.fetchApi(`/reposts/${id}`, {
       method: "DELETE",
     });
   }
