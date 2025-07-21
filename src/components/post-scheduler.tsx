@@ -1,80 +1,39 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Minus, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, addHours } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
-import { ImageData, ImageUpload } from "@/components/image-upload";
+import { ImageUpload } from "@/components/image-upload";
 import { OfflineInfo } from "@/components/offline-info";
 import { useLocalStorage } from "@/components/hooks/use-local-storage";
-import { LabelOptionType, LabelOptions, Post } from "@/lib/db/types";
+import { LabelOptionType, LabelOptions, ScheduledImageData } from "@/lib/db/types";
 import { db } from "@/lib/db";
-import { getPostData } from "@/lib/bluesky";
+import { agent } from "@/lib/bluesky";
 import { defaultPresets } from "./ui/date-time-picker-presets";
 import { DateTimePicker } from "./ui/date-time-picker";
 import { useDynamicPresets } from "./hooks/use-dynamic-presets";
 import { TimezoneClock } from "./ui/timezone-clock";
+import { RichText } from "@atproto/api/dist/rich-text/rich-text";
 
 export function PostScheduler() {
   const [lastUpdatedRaw, setLastUpdated] = useLocalStorage("lastUpdated");
   const lastUpdated =
     typeof lastUpdatedRaw === "string" ? lastUpdatedRaw : undefined;
-  const [toEditPost, , clearToEditPost] = useLocalStorage<Post>("toEditPost");
 
   const defaultDate = addHours(new Date(), 1);
 
-  const [content, setContent] = useState(
-    toEditPost ? toEditPost.data.text : ""
-  );
-  const [scheduledDate, setScheduledDate] = useState(
-    toEditPost?.scheduledFor
-      ? format(toEditPost.scheduledFor, "yyyy-MM-dd")
-      : format(defaultDate, "yyyy-MM-dd")
-  );
-  const [scheduledTime, setScheduledTime] = useState(
-    toEditPost?.scheduledFor
-      ? format(toEditPost.scheduledFor, "HH:mm")
-      : format(defaultDate, "HH:mm")
-  );
+  const [content, setContent] = useState("");
+  const [scheduledDate, setScheduledDate] = useState(format(defaultDate, "yyyy-MM-dd"));
+  const [scheduledTime, setScheduledTime] = useState(format(defaultDate, "HH:mm"));
   const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const [scheduledTimezone, setScheduledTimezone] = useState(
-    toEditPost?.scheduledTimezone || browserTimezone
-  );
-  const [images, setImages] = useState<ImageData[]|undefined>(
-    toEditPost?.data.embed?.images?.map((_image) => { return {..._image, blobRef: _image.image, type: _image.image.mimeType || "", alt: _image.alt || "" }; })
-  );
-  const [labels, setLabels] = useState<LabelOptionType>(
-    toEditPost?.data.labels?.values?.[0]?.val
-  )
+  const [scheduledTimezone, setScheduledTimezone] = useState(browserTimezone);
+  const [images, setImages] = useState<ScheduledImageData[]|undefined>();
+  const [labels, setLabels] = useState<LabelOptionType>();
   const [isLoading, setIsLoading] = useState(false);
   const dynamicPresets = useDynamicPresets(lastUpdated);
 
-  const [scheduledRepostDates, setScheduledRepostDates] = useState(
-    toEditPost?.repostDates?.map((repostDate) => format(repostDate, "yyyy-MM-dd"))
-  );
-  const [scheduledRepostTimes, setScheduledRepostTimes] = useState(
-    toEditPost?.repostDates?.map((repostDate) => format(repostDate, "HH:mm"))
-  );
-
-  useEffect(() => {
-    if (toEditPost) {
-      setContent(toEditPost.data.text);
-      setScheduledDate(format(toEditPost.scheduledFor, "yyyy-MM-dd"));
-      setScheduledTime(format(toEditPost.scheduledFor, "HH:mm"));
-      setScheduledRepostDates(toEditPost?.repostDates?.map((repostDate) => format(repostDate, "yyyy-MM-dd")));
-      setScheduledRepostTimes(toEditPost?.repostDates?.map((repostDate) => format(repostDate, "HH:mm")));
-      if (toEditPost?.data.embed?.images?.[0]) {
-        setImages(toEditPost?.data.embed?.images?.map((_image) => { return {..._image, blobRef: _image.image, type: _image.image.mimeType || "", alt: _image.alt || "" }; }));
-      }
-    } else {
-      setContent("");
-      const defaultDate = addHours(new Date(), 1);
-      setScheduledDate(format(defaultDate, "yyyy-MM-dd"));
-      setScheduledTime(format(defaultDate, "HH:mm"));
-      setScheduledRepostDates(undefined);
-      setScheduledRepostTimes(undefined);
-      setImages(undefined);
-    }
-  }, [toEditPost]);
+  const [scheduledRepostDates, setScheduledRepostDates] = useState<string[]|undefined>();
+  const [scheduledRepostTimes, setScheduledRepostTimes] = useState<string[]|undefined>();
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -88,8 +47,6 @@ export function PostScheduler() {
       // Combine date, time, and timezone to get UTC date
       const localDateTime = `${scheduledDate}T${scheduledTime}`;
       const scheduledFor = fromZonedTime(localDateTime, scheduledTimezone);
-      const urls = extractUrls(content);
-      const firstUrl = urls[0]; // We'll use the first URL found
       const repostDates = scheduledRepostDates?.map((repostDate, index) => {
         return fromZonedTime(`${repostDate}T${scheduledRepostTimes?.[index]}`, scheduledTimezone);
       })
@@ -110,33 +67,25 @@ export function PostScheduler() {
         }
       }
 
+      const richText = new RichText({ text: content });
+        // Process the text to detect mentions, links, etc.
+      await richText.detectFacets(agent);
+
       try {
         setIsLoading(true);
-        const postData = await getPostData({
-          scheduledAt: scheduledFor,
-          content,
-          url: firstUrl,
-          images,
-          labels
-        });
 
-        if (toEditPost && toEditPost.id) {
-          await db()?.updatePost(toEditPost.id, {
-            data: postData,
-            scheduledFor,
-            scheduledTimezone,
-            repostDates,
-            status: "pending",
-          });
-        } else {
-          await db()?.createPost({
-            data: postData,
-            scheduledFor,
-            scheduledTimezone,
-            repostDates,
-            status: "pending",
-          });
-        }
+        await db()?.createPost({
+          data: {
+            text: content,
+            facets: richText.facets,
+            labels: labels,
+            embed: images
+          },
+          scheduledFor,
+          scheduledTimezone,
+          repostDates,
+          status: "pending",
+        });
 
         toast.success("Post scheduled successfully!");
         setContent("");
@@ -150,7 +99,6 @@ export function PostScheduler() {
         setLastUpdated(new Date().toISOString());
         setLabels(undefined);
         setIsLoading(false);
-        clearToEditPost();
       } catch (error: unknown) {
         console.log(error);
         toast.error("Failed to schedule post");
@@ -164,16 +112,14 @@ export function PostScheduler() {
       images,
       scheduledRepostDates,
       scheduledRepostTimes,
-      toEditPost,
-      setLastUpdated,
-      clearToEditPost,
+      setLastUpdated
     ]
   );
 
   return (
     <div className="mx-auto p-6">
       <h2 className="text-2xl font-bold mb-6">
-        {toEditPost ? "Edit" : "Schedule New"} Post
+        Schedule New Post
       </h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
@@ -201,7 +147,7 @@ export function PostScheduler() {
               return <ImageUpload
                 onImageSelect={(_image) => setImages(images ? [...images, _image] : [_image])}
                 onImageClear={() => setImages(undefined)}
-                selectedImage={images?.at(i)}
+                selectedImage={images?.[i]}
               />;
           })}
         </div>
@@ -317,10 +263,4 @@ export function PostScheduler() {
       </form>
     </div>
   );
-}
-
-// In post-scheduler.tsx, add this function before the PostScheduler component
-function extractUrls(text: string): string[] {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return text.match(urlRegex) || [];
 }

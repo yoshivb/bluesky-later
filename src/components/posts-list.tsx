@@ -1,12 +1,8 @@
 import { format } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
 import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Image,
-  Link,
-  PenIcon,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,10 +10,14 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { Post } from "@/lib/db/types";
 import { db } from "@/lib/db";
-import { Button } from "./ui/button";
-import { ImageStore } from "./image-store";
+import { Record } from "@atproto/api/dist/client/types/app/bsky/feed/post";
 
-type PostOrRepost = Post & {isRepost?: boolean};
+type PostOrRepost = {
+  scheduledPost?: Post;
+  publishedPost?: Record;
+  scheduledFor: Date;
+  isRepost: boolean;
+};
 
 export function PostsList({
   EmptyComponent,
@@ -28,8 +28,6 @@ export function PostsList({
 }) {
   const [posts, setPosts] = useState<PostOrRepost[]>([]);
   const [lastUpdated, setLastUpdated] = useLocalStorage("lastUpdated");
-  const [toEditPost, setToEditPost, clearToEditPost] =
-    useLocalStorage<Post>("toEditPost");
 
   const fetchPosts = useCallback(async () => {
     let AllFetchedPosts : PostOrRepost[] = [];
@@ -40,7 +38,13 @@ export function PostsList({
         : await db()?.getPublishedPosts();
     if(fetchedPosts)
     {
-      AllFetchedPosts = AllFetchedPosts.concat(fetchedPosts);
+      AllFetchedPosts = AllFetchedPosts.concat(fetchedPosts.map((post)=>{
+        return {
+          scheduledPost: post,
+          scheduledFor: post.scheduledFor,
+          isRepost: false
+        }
+      }));
       if(type === "scheduled")
       {
         for(const fetchedPost of fetchedPosts)
@@ -50,9 +54,8 @@ export function PostsList({
             for(const repostDate of fetchedPost.repostDates)
             {
               AllFetchedPosts.push({
-                data: fetchedPost.data,
+                scheduledPost: fetchedPost,
                 scheduledFor: repostDate,
-                id: fetchedPost.id,
                 isRepost: true
             } as PostOrRepost)
             }
@@ -70,9 +73,8 @@ export function PostsList({
         if(repost.postData)
         {
           return {
-            data: repost.postData,
+            publishedPost: repost.postData,
             scheduledFor: repost.scheduledFor,
-            id: repost.id,
             isRepost: true
           } as PostOrRepost;
         }
@@ -106,13 +108,17 @@ export function PostsList({
   const clearScheduledPosts = useCallback(async () => {
     if (window.confirm("Are you sure you want to clear all scheduled posts?")) {
       await Promise.all(
-        posts.map((post) => post.id && db()?.deletePost(post.id))
+        posts.map((post) => { 
+          if(!post.isRepost && post.scheduledPost?.id)
+          {
+            return db()?.deletePost(post.scheduledPost.id);
+          }
+        })
       );
-      clearToEditPost();
       await fetchPosts();
       setLastUpdated(new Date().toISOString());
     }
-  }, [fetchPosts, posts, setLastUpdated, clearToEditPost]);
+  }, [fetchPosts, posts, setLastUpdated]);
 
   const deletePost = useCallback(
     async (id: number) => {
@@ -129,20 +135,8 @@ export function PostsList({
 
   return (
     <div className={cn("mx-auto p-6 relative")}>
-      {toEditPost && (
-        <div className="absolute inset-0 p-2 py-8 bg-white bg-opacity-60 backdrop-filter backdrop-blur-sm flex flex-col items-center justify-start">
-          <Button
-            onClick={() => {
-              clearToEditPost();
-            }}
-          >
-            Cancel editing
-          </Button>
-        </div>
-      )}
       <div className="flex items-center justify-end mb-6">
         <button
-          disabled={!!toEditPost}
           onClick={clearScheduledPosts}
           className={cn(
             "text-sm text-red-600 hover:text-red-700",
@@ -155,107 +149,81 @@ export function PostsList({
 
       <div className="space-y-4">
         {posts.map((post) => {
-          if (!post.data) return null;
-          const firstImage = post.data.embed?.images?.[0]?.localImageId;
-          const websiteImage = post.data.embed?.external?.websiteImageLocalId;
-          const imageId = firstImage || websiteImage;
-          const imageAlt = post.data.embed?.images?.[0]?.alt;
+          if (!post.scheduledPost && !post.publishedPost) return null;
+
+          const scheduledImage = post.scheduledPost?.data.embed?.[0];
+          const postedImage = undefined; // Todo fetch this info somehow
+          const postText = post.scheduledPost?.data.text ?? post.publishedPost?.text;
 
           return (
             <div
-              key={post.id}
               className="bg-white p-4 rounded-lg shadow border border-gray-200"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <p className="text-gray-900 mb-2">{post.data.text}</p>
-
-                  {imageId && (
+                  <p className="text-gray-900 mb-2">{postText}</p>
+                  {scheduledImage && (
                     <div className="mb-2 space-y-2">
                       <Suspense fallback="...">
-                        <PostImage
-                          imageId={imageId}
-                          alt={imageAlt}
+                        <ScheduledPostImage
+                          imageName={scheduledImage.name}
+                          alt={scheduledImage.alt}
                           className="w-32 h-32 object-cover rounded-lg"
-                          key={imageId}
                         />
                       </Suspense>
-                      {imageAlt ? (
+                      {scheduledImage.alt ? (
                         <p className="text-sm text-gray-400">
-                          <strong>Alt text:</strong> {imageAlt}
+                          <strong>Alt text:</strong> {scheduledImage.alt}
                         </p>
                       ) : null}
                     </div>
                   )}
+                  {/* {postedImage && (
+                    <div className="mb-2 space-y-2">
+                      <Suspense fallback="...">
+                        <img
+                          src={postedImage.image.ref}
+                          alt={postedImage.alt}
+                          className="w-32 h-32 object-cover rounded-lg"
+                        />
+                      </Suspense>
+                      {postedImage.alt ? (
+                        <p className="text-sm text-gray-400">
+                          <strong>Alt text:</strong> {postedImage.alt}
+                        </p>
+                      ) : null}
+                    </div>
+                  )} */}
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Clock className="h-4 w-4" />
                     <span>
                       Scheduled for{" "}
-                      {post.scheduledTimezone
-                        ? formatInTimeZone(
-                            post.scheduledFor,
-                            post.scheduledTimezone,
-                            "MMM d, yyyy h:mm a"
-                          )
-                        : format(post.scheduledFor, "MMM d, yyyy h:mm a")}
-                      {post.scheduledTimezone ? (
-                        <>
-                          {" "}
-                          <span className="ml-1">
-                            ({post.scheduledTimezone})
-                          </span>
-                        </>
-                      ) : null}
+                      {format(post.scheduledFor, "MMM d, yyyy h:mm a")}
                     </span>
-                    {firstImage && (
-                      <>
-                        <span className="mx-1">•</span>
-                        <Image className="h-4 w-4" />
-                        <span>Has image</span>
-                      </>
-                    )}
-                    {websiteImage && imageId && (
-                      <>
-                        <span className="mx-1">•</span>
-                        <Link className="h-4 w-4" />
-                        <span>Social card</span>
-                      </>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   {post.isRepost && (
                     <p className="text-sm text-gray-500">Repost</p>
                   )}
-                  {!post.isRepost && post.status === "pending" && (
+                  {post.scheduledPost && post.scheduledPost.status === "pending" && (
                     <Clock className="h-5 w-5 text-yellow-500" />
                   )}
-                  {!post.isRepost && post.status !== "published" && (
-                    <button
-                      disabled={!!toEditPost}
-                      onClick={() => {
-                        setToEditPost(post);
-                      }}
-                    >
-                      <PenIcon className="h-5 w-5 text-gray-400" />
-                    </button>
-                  )}
-                  {!post.isRepost && post.status === "published" && (
+                  {post.scheduledPost && post.scheduledPost.status === "published" && (
                     <CheckCircle className="h-5 w-5 text-green-500" />
                   )}
-                  {!post.isRepost && post.status === "failed" && (
+                  {post.scheduledPost && post.scheduledPost.status === "failed" && (
                     <div className="relative group">
                       <AlertCircle className="h-5 w-5 text-red-500" />
-                      {post.error && (
+                      {post.scheduledPost.error && (
                         <div className="absolute right-0 w-48 bg-white p-2 rounded shadow-lg hidden group-hover:block text-sm text-red-600">
-                          {post.error}
+                          {post.scheduledPost.error}
                         </div>
                       )}
                     </div>
                   )}
-                  {!post.isRepost && (<button
-                    disabled={!!toEditPost}
-                    onClick={() => post.id && deletePost(post.id)}
+                  {post.scheduledPost && post.scheduledPost.id && (<button
+                    onClick={() => post.scheduledPost?.id && deletePost(post.scheduledPost.id)}
                     className="text-gray-400 hover:text-red-600 transition-colors"
                   >
                     <Trash2 className="h-5 w-5" />
@@ -271,12 +239,12 @@ export function PostsList({
   );
 }
 
-const PostImage = ({
-  imageId,
+const ScheduledPostImage = ({
+  imageName,
   alt,
   className,
 }: {
-  imageId: number;
+  imageName: string;
   alt?: string;
   className?: string;
 }) => {
@@ -284,13 +252,15 @@ const PostImage = ({
 
   useEffect(() => {
     const fetchImage = async () => {
-      const imageStore = new ImageStore();
-      const imageData = await imageStore.getImageAsDataUrl(imageId);
-      setImage(imageData);
+      const imageFile = await db()?.getImage(imageName);
+      if(imageFile)
+      {
+        setImage(URL.createObjectURL(imageFile));
+      }
     };
 
     fetchImage();
-  }, [imageId]);
+  }, [imageName]);
 
   if (!image) return null;
 

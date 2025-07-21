@@ -3,7 +3,12 @@ import { Pool } from "pg";
 import cors from "cors";
 import { BskyAgent } from "@atproto/api";
 import dotenv from "dotenv";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
+import multer from 'multer';
+import path from 'path';
+import sharp from 'sharp'
+import { BlobRefType, convertToBlueskyPost, ScheduledPostData } from "./types"
+import { Image } from "@atproto/api/dist/client/types/app/bsky/embed/images";
 
 dotenv.config({ path: "../.env" });
 
@@ -13,6 +18,37 @@ const port = 3000;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
+
+export const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif']; 
+const allowedExtensions = ['.jpeg', '.jpg', '.png', '.gif'];
+const imageLimits = {
+    fileSize: 1024 * 1024,
+    files: 4
+};
+
+const storage = multer.memoryStorage();
+
+const fileFilter = (_: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    try {
+      
+        // Check MIME type
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            return cb(new Error('Invalid MIME type!'));
+        }
+
+        // Check file extension
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (!allowedExtensions.includes(ext)) {
+            return cb(new Error('Invalid file extension!'));
+        }
+        return cb(null, true);
+
+    } catch (error) {
+        return cb(new Error('Could not process file type!'));
+    }
+};
+
+const upload = multer({ storage: storage, fileFilter, limits: imageLimits });
 
 app.use(cors());
 app.use(express.json());
@@ -150,6 +186,26 @@ async function initDB() {
   `);
 }
 
+app.post("/api/post/image", upload.single('image'), async (req, res) => {
+  if (!req.file) {
+      return res.status(400).send('No files uploaded or invalid file type.');
+  }
+
+  const uniqueName = `${crypto.randomUUID()}${path.extname(req.file.originalname).toLowerCase()}`;
+  const finalPath = path.join("./uploads", uniqueName);
+  await sharp(req.file.buffer).withMetadata().toFile(finalPath);
+
+  res.json({
+    imageName: uniqueName
+  });
+})
+
+app.get("/api/post/image/:name", function (req, res) {
+  const fileName = req.params.name;
+  const finalPath = path.join("./uploads", fileName);
+  res.sendFile(finalPath, { root: '.' });
+})
+
 app.get("/api/posts/pending", async (req, res) => {
   const result = await pool.query(
     "SELECT * FROM posts WHERE status = $1 AND scheduled_for <= NOW()",
@@ -201,16 +257,6 @@ app.delete("/api/posts/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-app.patch("/api/posts/:id", async (req, res) => {
-  const { id } = req.params;
-  const { data, scheduledFor } = req.body;
-  await pool.query(
-    "UPDATE posts SET data = $1, scheduled_for = $2 WHERE id = $3",
-    [data, scheduledFor, id]
-  );
-  res.json({ success: true });
-});
-
 async function getScheduledReposts(reposts: {uri: string, cid: string}[])
 {
   const uris = reposts.map((val) => val.uri);
@@ -220,6 +266,11 @@ async function getScheduledReposts(reposts: {uri: string, cid: string}[])
   }
 
   const { rows: [creds] } = await pool.query("SELECT * FROM credentials LIMIT 1");
+
+  if(!creds)
+  {
+    return [];
+  }
 
   const agent = new BskyAgent({ service: "https://bsky.social" });
   await agent.login({
@@ -283,16 +334,6 @@ app.delete("/api/reposts/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-app.patch("/api/reposts/:id", async (req, res) => {
-  const { id } = req.params;
-  const { scheduledFor, status } = req.body;
-  await pool.query(
-    "UPDATE reposts SET status = $1, scheduled_for = $2 WHERE id = $3",
-    [status, scheduledFor, id]
-  );
-  res.json({ success: true });
-});
-
 // Cron endpoint
 app.post("/api/cron/check-posts", async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -301,6 +342,11 @@ app.post("/api/cron/check-posts", async (req, res) => {
   }
 
   const { rows: [creds] } = await pool.query("SELECT * FROM credentials LIMIT 1");
+
+  if(!creds)
+  {
+    return;
+  }
 
   const agent = new BskyAgent({ service: "https://bsky.social" });
   await agent.login({
@@ -317,7 +363,36 @@ app.post("/api/cron/check-posts", async (req, res) => {
 
   for (const post of posts) {
     try {
-      const postInfo = await agent.post(post.data);
+      const postData = post.data as ScheduledPostData;
+      let bskyPost = convertToBlueskyPost(postData, post.scheduled_for.toISOString());
+
+      if(postData.embed)
+      {
+        let embedImages : Image[] = [];
+        for(const scheduledImage of postData.embed)
+        {
+          const sharpImage = await sharp(`./uploads/${scheduledImage.name}`);
+          const imageMetadata = await sharpImage.metadata();
+          const aspectRatio = {width: imageMetadata.width, height: imageMetadata.height};
+
+          const uint8Array = new Uint8Array(await sharpImage.toBuffer());
+          const bskyImage = await agent.uploadBlob(uint8Array, {
+            encoding: `image/${imageMetadata.format}`,
+          });
+          embedImages.push({
+            image: bskyImage.data.blob,
+            alt: scheduledImage.alt || "",
+            aspectRatio
+          })
+        }
+        
+        bskyPost.embed = {
+          $type: "app.bsky.embed.images",
+          images: embedImages
+        };
+      }
+
+      const postInfo = await agent.post(bskyPost);
 
       await pool.query("UPDATE posts SET status = $1 WHERE id = $2", [
         "published",

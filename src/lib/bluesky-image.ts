@@ -2,7 +2,7 @@ import { BskyAgent } from "@atproto/api";
 import { Credentials } from "./db/types";
 import { AspectRatio } from "@atproto/api/dist/client/types/app/bsky/embed/images";
 
-function getImageDimensions(file: File) {
+function getImageDimensions(file: Blob) {
   return new Promise (function (resolved: (value: AspectRatio) => void, rejected) {
 
     let reader = new FileReader();
@@ -27,7 +27,7 @@ function getImageDimensions(file: File) {
 }
 
 export async function uploadImage(
-  file: File,
+  file: Blob,
   agent: BskyAgent,
   creds: Credentials
 ) {
@@ -42,17 +42,7 @@ export async function uploadImage(
 
   // Structure the blob reference with $link
   return {
-    blobRef: {
-      $type: "blob",
-      ref: {
-        $link: response.data.blob.ref.toString(), // Convert the ref to the correct $link format
-      },
-      mimeType: response.data.blob.mimeType,
-      size: response.data.blob.size,
-    },
-    type: file.type,
+    blobRef: response.data.blob,
     aspectRatio
   };
 }
-
-export type UploadImageResult = Awaited<ReturnType<typeof uploadImage>>;

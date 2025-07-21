@@ -18,6 +18,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    ports:
+      - "5432:5432"
 
   api:
     build:
@@ -26,6 +28,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://bluesky:bluesky@postgres:5432/bluesky_scheduler}
       CRON_SECRET: ${CRON_SECRET:-your-secret-here}
+    volumes:
+      - api_data:/app/uploads
     depends_on:
       - postgres
     healthcheck:
@@ -33,28 +37,32 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    ports:
+      - "3000:3000"
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://api:3000}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
         VITE_STORAGE_MODE: remote
         VITE_METADATA_FETCHER_URL: ${VITE_METADATA_FETCHER_URL:-https://linkpreview.magic.coolify.nico.fyi/api/v1/preview?url=}
         VITE_IMAGE_PROXY_URL: ${VITE_IMAGE_PROXY_URL:-https://allorigins.magic.coolify.nico.fyi/raw?url=}
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://api:3000}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
       VITE_STORAGE_MODE: remote
       VITE_METADATA_FETCHER_URL: ${VITE_METADATA_FETCHER_URL:-https://linkpreview.magic.coolify.nico.fyi/api/v1/preview?url=}
       VITE_IMAGE_PROXY_URL: ${VITE_IMAGE_PROXY_URL:-https://allorigins.magic.coolify.nico.fyi/raw?url=}
     depends_on:
       - api
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s
       timeout: 10s
       retries: 3
+    ports:
+      - "8080:8080"
 
   cron:
     image: alpine
@@ -66,7 +74,7 @@ services:
       /bin/sh -c "
       apk add --no-cache curl &&
       while true; do
-        curl -X POST -H 'Authorization: Bearer "$CRON_SECRET"' http://api:3000/api/cron/check-posts;
+        curl -X POST -H 'Authorization: Bearer "$CRON_SECRET"' http://localhost:3000/api/cron/check-posts;
         sleep 60;
       done
       "
@@ -78,3 +86,4 @@ services:
 
 volumes:
   postgres_data:
+  api_data:

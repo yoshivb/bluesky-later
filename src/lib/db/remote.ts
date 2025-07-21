@@ -11,7 +11,7 @@ export class RemoteDB implements DatabaseInterface {
     this.apiCredentials = credentials;
   }
 
-  private async fetchApi(endpoint: string, options?: RequestInit) {
+  private async authfetch(endpoint: string, options?: RequestInit) {
     const response = await makeAuthenticatedRequest(
       `${this.apiUrl}/api${endpoint}`,
       options,
@@ -20,7 +20,17 @@ export class RemoteDB implements DatabaseInterface {
     if (!response.ok) {
       throw new Error(`API Error: ${response.statusText}`);
     }
+    return response;
+  }
+
+  private async fetchApi(endpoint: string, options?: RequestInit) {
+    const response = await this.authfetch(endpoint, options);
     return response.json();
+  }
+
+  private async fetchApiBlob(endpoint: string, options?: RequestInit) {
+    const response = await this.authfetch(endpoint, options);
+    return response.blob();
   }
 
   deserializePost = (post: Record<string, unknown>) => {
@@ -83,6 +93,19 @@ export class RemoteDB implements DatabaseInterface {
     });
   }
 
+  async getImage(name: string): Promise<Blob|undefined> {
+    return this.fetchApiBlob(`/post/image/${name}`);
+  }
+
+  async uploadImage(file: File): Promise<{imageName: string}> {
+    const formData  = new FormData();
+    formData.append("image", file);
+
+    return this.fetchApi("/post/image", {
+      method: "POST",
+      body: formData
+    });
+  }
 
   async getPublishedReposts(): Promise<RepostData[]> {
     return this.fetchApi("/reposts/published").then((reposts) =>

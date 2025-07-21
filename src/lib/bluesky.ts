@@ -1,9 +1,10 @@
-import { BskyAgent, RichText } from "@atproto/api";
-import { BlobRefType, LabelOptionType, PostData } from "@/lib/db/types";
-import { fetchUrlMetadata } from "./metadata";
+import { BskyAgent } from "@atproto/api";
+import { BlobRefType, ScheduledPostData } from "@/lib/db/types";
 import { ApiCredentials } from "./api";
 import { createDatabase, db } from "@/lib/db";
-import { AspectRatio } from "@atproto/api/dist/client/types/app/bsky/embed/images";
+import { Record } from "@atproto/api/dist/client/types/app/bsky/feed/post";
+import { Image } from "@atproto/api/dist/client/types/app/bsky/embed/images";
+import { uploadImage } from "./bluesky-image";
 
 export const agent = new BskyAgent({
   service: "https://bsky.social",
@@ -36,7 +37,34 @@ export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
 
     for (const post of pendingPosts) {
       try {
-        await agent.post(post.data);
+        let bskyPost = convertToBlueskyPost(post.data, post.scheduledFor);
+
+        if(post.data.embed)
+        {
+          let embedImages : (Omit<Image, "image"> & {image: BlobRefType})[] = [];
+          for(const scheduledImage of post.data.embed)
+          {
+            const image = await db()?.getImage(scheduledImage.name);
+            if(!image)
+            {
+              throw new Error("Failed to retrieve scheduled image!");
+            }
+
+            const bskyImage = await uploadImage(image, agent, creds);
+            embedImages.push({
+              image: bskyImage.blobRef.toJSON(),
+              alt: scheduledImage.alt || "",
+              aspectRatio: bskyImage.aspectRatio,
+            })
+          }
+          
+          bskyPost.embed = {
+            $type: "app.bsky.embed.images",
+            images: embedImages
+          };
+        }
+
+        await agent.post(bskyPost);
         await db()?.updatePost(post.id!, { status: "published" });
       } catch (error: unknown) {
         console.error("Post creation error:", error);
@@ -48,62 +76,15 @@ export async function checkScheduledPosts(workerCredentials?: ApiCredentials) {
   }
 }
 
-export const getPostData = async ({
-  content,
-  url,
-  images,
-  scheduledAt,
-  labels
-}: {
-  scheduledAt: Date;
-  content: string;
-  url?: string;
-  images?: {
-    blobRef: BlobRefType;
-    alt?: string;
-    localImageId?: number;
-    aspectRatio: AspectRatio
-  }[];
-  labels: LabelOptionType;
-}): Promise<PostData> => {
-  const credentials = await db()?.getCredentials();
-  if (!credentials) throw new Error("No credentials set");
-
-  // Create a RichText instance
-  const richText = new RichText({ text: content });
-  // Process the text to detect mentions, links, etc.
-  await richText.detectFacets(agent);
-
-  const postData: PostData = {
-    text: richText.text,
-    facets: richText.facets,
-    createdAt: scheduledAt.toISOString(),
-    labels: labels ? { 
-      $type: "com.atproto.label.defs#selfLabels", 
-      values: [{val: labels}] 
-    } : undefined
-  };
-
-  if (url) {
-    const external = await fetchUrlMetadata(url, agent, credentials);
-    postData.embed = {
-      $type: "app.bsky.embed.external",
-      external,
-    };
-  } else if (images) {
-    postData.embed = {
-      $type: "app.bsky.embed.images",
-      images: images.filter((_image) => _image.blobRef !== undefined).map(
-        (_image) => { 
-          return {
-            image: _image.blobRef, 
-            localImageId: _image.localImageId,
-            alt: _image.alt || "",
-            aspectRatio: _image.aspectRatio
-          }; 
-      }),
-    };
+const convertToBlueskyPost = (scheduledPost: ScheduledPostData, scheduleDate: Date) : Record =>
+{
+  return {
+    text: scheduledPost.text,
+    facets: scheduledPost.facets,
+    labels: scheduledPost.labels ? {
+      $type: "com.atproto.label.defs#selfLabels",
+      values: [{ val: scheduledPost.labels}]
+    } : undefined,
+    createdAt: scheduleDate.toISOString()
   }
-
-  return postData;
-};
+}

@@ -66,6 +66,14 @@ export class LocalDB implements DatabaseInterface {
     await this.db.posts.delete(id);
   }
 
+  async getImage(_: string): Promise<Blob|undefined> {
+    return undefined;
+  }
+
+  async uploadImage(file: File): Promise<{imageName: string}> {
+    return {imageName: file.name};
+  }
+
   async getRepostsToSend(): Promise<RepostData[]> {
     return this.db.reposts
       .where("status")

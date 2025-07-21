@@ -4,14 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "VITE_STORAGE_MODE=local vite",
+    "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "dev:remote": "docker-compose -f docker-compose.dev.yml up --build -d postgres cron && sleep 5 && concurrently \"VITE_STORAGE_MODE=remote vite\" \"cd api && npm run dev\"",
     "dev:remote:down": "docker-compose -f docker-compose.dev.yml down -v",
     "prod": "docker-compose up --build",
-    "prod:down": "docker-compose down"
+    "prod:down": "docker-compose down",
+    "docker": "docker build -t yoshivb/bluesky-later -f Dockerfile.combined --platform linux/arm64 . && docker save yoshivb/bluesky-later > ../yoshivb-bluesky-later.tar"
   },
   "dependencies": {
     "@atproto/api": "^0.12.2",

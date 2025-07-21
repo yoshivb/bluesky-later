@@ -49,34 +49,15 @@ export type ScheduledPostData = {
   labels?: LabelOptionType;
   embed?: Array<ScheduledImageData>
 }
-
-export interface Credentials {
-  id: number;
-  identifier: string;
-  password: string;
-}
-
-export interface DatabaseInterface {
-  getScheduledPosts(): Promise<Post[]>;
-  getPostsToSend(): Promise<Post[]>;
-  getPublishedPosts(): Promise<Post[]>;
-  getAllPosts(): Promise<Post[]>;
-  createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post>;
-  updatePost(id: number, post: Partial<Post>): Promise<void>;
-  deletePost(id: number): Promise<void>;
-
-  getImage(name: string): Promise<Blob|undefined>;
-  uploadImage(file: File): Promise<{imageName: string}>;
-
-  getScheduledReposts(): Promise<RepostData[]>;
-  getRepostsToSend(): Promise<RepostData[]>;
-  getPublishedReposts(): Promise<RepostData[]>;
-  getAllReposts(): Promise<RepostData[]>;
-  createRepost(repost: RepostData): Promise<RepostData>;
-  updateRepost(id: number, repost: Partial<RepostData>): Promise<void>;
-  deleteRepost(id: number): Promise<void>;
-
-  getCredentials(): Promise<Credentials | null>;
-  setCredentials(creds: Omit<Credentials, "id">): Promise<void>;
-  deleteCredentials(): Promise<void>;
+export const convertToBlueskyPost = (scheduledPost: ScheduledPostData, scheduleDate: string) : Record =>
+{
+  return {
+    text: scheduledPost.text,
+    facets: scheduledPost.facets,
+    labels: scheduledPost.labels ? {
+      $type: "com.atproto.label.defs#selfLabels",
+      values: [{ val: scheduledPost.labels}]
+    } : undefined,
+    createdAt: scheduleDate
+  }
 }
